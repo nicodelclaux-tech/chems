@@ -1,1 +1,47 @@
-{"series": {"brent": {"source": "EIA", "url": "https://example.com"}}}
+﻿{
+    "pulled_at_utc":  "2026-04-16T07:14:46.7642865Z",
+    "country":  "NL",
+    "series":  {
+                   "chem_output":  {
+                                       "source":  "Eurostat",
+                                       "dataset":  "sts_inpr_m",
+                                       "filters":  {
+                                                       "geo":  "NL",
+                                                       "nace_r2":  "C20",
+                                                       "freq":  "M",
+                                                       "s_adj":  "SCA",
+                                                       "unit":  "I21"
+                                                   }
+                                   },
+                   "chem_ppi":  {
+                                    "source":  "Eurostat",
+                                    "dataset":  "sts_inpp_m",
+                                    "filters":  {
+                                                    "geo":  "NL",
+                                                    "nace_r2":  "C20",
+                                                    "freq":  "M",
+                                                    "s_adj":  "NSA",
+                                                    "unit":  "I21"
+                                                }
+                                },
+                   "brent":  {
+                                 "source":  "U.S. Energy Information Administration",
+                                 "url":  "https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?f=m\u0026n=pet\u0026s=rbrte",
+                                 "note":  "Europe Brent Spot Price FOB, USD/barrel"
+                             },
+                   "ttf_gas":  {
+                                   "source":  "World Bank Pink Sheet",
+                                   "url":  "https://thedocs.worldbank.org/en/doc/74e8be41ceb20fa0da750cda2f6b9e4e-0050012026/related/CMO-Historical-Data-Monthly.xlsx",
+                                   "note":  "Natural gas, Europe (TTF), USD/mmbtu"
+                               },
+                   "capacity_util":  {
+                                         "source":  "Eurostat",
+                                         "dataset":  "teibs070",
+                                         "filters":  {
+                                                         "geo":  "NL",
+                                                         "freq":  "Q"
+                                                     },
+                                         "note":  "Only available from 2023-Q2 onwards; quarterly value repeated across each quarter month"
+                                     }
+               }
+}
