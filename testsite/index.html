@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NL Chemicals Oil/Gas Correlation Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #131a2f;
+      --panel-2: #1a2342;
+      --text: #edf2ff;
+      --muted: #aab7d4;
+      --accent: #7dd3fc;
+      --accent-2: #a78bfa;
+      --good: #86efac;
+      --warn: #fcd34d;
+      --bad: #fda4af;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 12px 36px rgba(0,0,0,0.22);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #0b1020 0%, #09101b 100%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    a { color: var(--accent); }
+    .page {
+      width: min(1400px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 24px 0 48px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .panel {
+      background: rgba(19, 26, 47, 0.9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .title {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0 0 8px;
+    }
+    .subtitle {
+      color: var(--muted);
+      margin: 0;
+      font-size: 0.98rem;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(125, 211, 252, 0.12);
+      color: var(--text);
+      border: 1px solid rgba(125, 211, 252, 0.24);
+      font-size: 0.92rem;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .metric {
+      padding: 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    .metric .label {
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-bottom: 6px;
+    }
+    .metric .value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+    .muted { color: var(--muted); }
+    .chart-box {
+      height: 420px;
+    }
+    .chart-box.short {
+      height: 360px;
+    }
+    .two-up {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .control {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+    }
+    .control label {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .control input,
+    .control select {
+      width: 100%;
+      background: #0f1630;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 700;
+      color: #06111b;
+      background: var(--accent);
+    }
+    button.secondary {
+      color: var(--text);
+      background: rgba(167, 139, 250, 0.16);
+      border: 1px solid rgba(167, 139, 250, 0.28);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      background: var(--panel);
+    }
+    .table-wrap {
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .callout {
+      padding: 12px 14px;
+      border-left: 4px solid var(--accent-2);
+      background: rgba(167, 139, 250, 0.08);
+      border-radius: 12px;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+    .scenario-result {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .scenario-card {
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+    }
+    .scenario-card .big {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .footnotes {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    @media (max-width: 1100px) {
+      .hero, .grid-4, .grid-3, .two-up, .scenario-result { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 760px) {
+      .hero, .grid-4, .grid-3, .two-up, .controls, .scenario-result { grid-template-columns: 1fr; }
+      .page { width: min(100vw - 20px, 1400px); }
+      .title { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="hero">
+      <div class="panel">
+        <p class="title">Netherlands chemicals dashboard</p>
+        <p class="subtitle">
+          Distributed-lag view of Dutch chemicals output versus Brent, TTF gas, chemicals PPI, and capacity utilization.
+          This site is built from the latest pull run and is safe to host on GitHub Pages.
+        </p>
+        <div class="pill-row" id="heroPills"></div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Latest snapshot</h2>
+        </div>
+        <div id="latestSnapshot"></div>
+      </div>
+    </div>
+
+    <div class="grid-4" id="summaryCards"></div>
+
+    <div class="panel" style="margin-bottom: 20px;">
+      <div class="section-head">
+        <h2>Normalized levels</h2>
+        <span class="muted">All major series rebased to 100 at the first available common point</span>
+      </div>
+      <div id="levelsChart" class="chart-box"></div>
+    </div>
+
+    <div class="two-up">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Output growth</h2>
+          <span class="muted">Year-over-year change in Dutch chemicals output</span>
+        </div>
+        <div id="growthChart" class="chart-box short"></div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Cumulative model betas</h2>
+          <span class="muted">Sum of lag coefficients across the model window</span>
+        </div>
+        <div id="betaChart" class="chart-box short"></div>
+      </div>
+    </div>
+
+    <div class="two-up">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Lagged correlations</h2>
+          <div>
+            <label class="muted" for="driverSelect">Driver</label>
+            <select id="driverSelect"></select>
+          </div>
+        </div>
+        <div id="lagCorrChart" class="chart-box short"></div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Custom scenario tool</h2>
+          <span class="muted">One-month output impact if shocks persist for the selected horizon</span>
+        </div>
+        <div class="controls">
+          <div class="control">
+            <label for="brentPct">Brent shock (%)</label>
+            <input id="brentPct" type="number" step="0.1" value="20" />
+          </div>
+          <div class="control">
+            <label for="gasPct">TTF gas shock (%)</label>
+            <input id="gasPct" type="number" step="0.1" value="35" />
+          </div>
+          <div class="control">
+            <label for="ppiPct">Chemicals PPI shock (%)</label>
+            <input id="ppiPct" type="number" step="0.1" value="8" />
+          </div>
+          <div class="control">
+            <label for="capacityPts">Capacity change (pts)</label>
+            <input id="capacityPts" type="number" step="0.1" value="-1" />
+          </div>
+          <div class="control">
+            <label for="horizonMonths">Shock horizon (months)</label>
+            <select id="horizonMonths"></select>
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="runScenarioBtn">Run custom scenario</button>
+          <button id="resetScenarioBtn" class="secondary">Reset to gas squeeze</button>
+        </div>
+        <div id="scenarioDescription" class="callout">
+          The simulator applies your shocks through the estimated lag coefficients and shows the modeled incremental output move.
+        </div>
+        <div class="scenario-result">
+          <div class="scenario-card">
+            <div class="muted">Deterministic impact</div>
+            <div class="big" id="scenarioDeterministic">—</div>
+          </div>
+          <div class="scenario-card">
+            <div class="muted">P10</div>
+            <div class="big" id="scenarioP10">—</div>
+          </div>
+          <div class="scenario-card">
+            <div class="muted">P90</div>
+            <div class="big" id="scenarioP90">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-up">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Predefined scenarios</h2>
+          <span class="muted">Residual-bootstrap range around the point estimate</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Scenario</th>
+                <th>Inputs</th>
+                <th>Point</th>
+                <th>P10 / P90</th>
+              </tr>
+            </thead>
+            <tbody id="scenarioTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Model terms</h2>
+          <span class="muted">HAC-robust OLS coefficient table</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Term</th>
+                <th>Coef</th>
+                <th>p-value</th>
+                <th>95% CI</th>
+              </tr>
+            </thead>
+            <tbody id="coefTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-up">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Data sources</h2>
+          <span class="muted">Resolved endpoints from the latest pull</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Series</th>
+                <th>Source</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="sourceTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Interpretation notes</h2>
+        </div>
+        <div id="notesBox"></div>
+        <div class="footnotes">
+          Files emitted by the build step include <code>analysis_payload.json</code>, <code>lag_correlations.csv</code>,
+          <code>regression_coefficients.csv</code>, and <code>model_summary.txt</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const payload = {"meta": {"country": "Netherlands", "generated_from": "nl_chem_inputs_monthly.csv", "latest_observation_date": "2026-03-31", "start_date": "2015-01-31", "end_date": "2026-03-31", "max_lag_months": 6.0, "bootstrap_draws": 3000.0, "notes": ["The dependent variable is monthly log growth in the Netherlands chemicals production index.", "Driver shocks in the simulator are translated through the distributed-lag regression coefficients.", "Scenario ranges are residual bootstraps around the model point estimate, not structural forecasts.", "Capacity utilization is a manufacturing-wide proxy when available, not a chemicals-only measure."]}, "headline": {"nobs": 128.0, "r_squared": 0.1735450062522843, "adj_r_squared": 0.000383007562286819, "aic": -629.437866918781, "bic": -563.8411708486298, "durbin_watson": 1.7597326959533366, "strongest_driver": "Brent"}, "latest_values": {"date": "2026-03-31", "chem_output_idx": 116.70759940103986, "chem_ppi_idx": 88.92770997280712, "brent_usd_per_bbl": 74.5816697007231, "ttf_gas_usd_per_mmbtu": 3.425152005123725, "capacity_util_pct": 78.28405404824169}, "series": {"levels": [{"date": "2015-01-31", "chem_output_idx": 99.64233812833368, "chem_ppi_idx": 102.79413116644972, "brent_usd_per_bbl": 60.22674175350363, "ttf_gas_usd_per_mmbtu": 8.695352803396682, "capacity_util_pct": 80.919807260565}, {"date": "2015-02-28", "chem_output_idx": 100.29810768391177, "chem_ppi_idx": 103.87005985490518, "brent_usd_per_bbl": 59.98852674114753, "ttf_gas_usd_per_mmbtu": 9.727626289859838, "capacity_util_pct": 78.87887732106077}, {"date": "2015-03-31", "chem_output_idx": 103.01115148268336, "chem_ppi_idx": 103.0615572659831, "brent_usd_per_bbl": 61.15221002149877, "ttf_gas_usd_per_mmbtu": 10.665168588611404, "capacity_util_pct": 81.15088303123176}, {"date": "2015-04-30", "chem_output_idx": 103.99175934763956, "chem_ppi_idx": 101.69239084671604, "brent_usd_per_bbl": 61.34495937372939, "ttf_gas_usd_per_mmbtu": 8.826502532334514, "capacity_util_pct": 79.61522597339099}, {"date": "2015-05-31", "chem_output_idx": 105.78411045251984, "chem_ppi_idx": 100.7051209895674, "brent_usd_per_bbl": 60.36701972625173, "ttf_gas_usd_per_mmbtu": 9.738173208661104, "capacity_util_pct": 80.1584229071622}, {"date": "2015-06-30", "chem_output_idx": 103.40050941771078, "chem_ppi_idx": 100.6832795521338, "brent_usd_per_bbl": 61.025436950174566, "ttf_gas_usd_per_mmbtu": 10.006382557491737, "capacity_util_pct": 80.05334375570673}, {"date": "2015-07-31", "chem_output_idx": 103.52591465348856, "chem_ppi_idx": 100.71825070037146, "brent_usd_per_bbl": 63.46006292921108, "ttf_gas_usd_per_mmbtu": 10.351431852431306, "capacity_util_pct": 81.10073409502479}, {"date": "2015-08-31", "chem_output_idx": 103.95644266806003, "chem_ppi_idx": 99.971327075549, "brent_usd_per_bbl": 65.28897635782882, "ttf_gas_usd_per_mmbtu": 10.663461096811044, "capacity_util_pct": 79.67845254985707}, {"date": "2015-09-30", "chem_output_idx": 105.9371909360814, "chem_ppi_idx": 98.69336013368188, "brent_usd_per_bbl": 63.92504017258099, "ttf_gas_usd_per_mmbtu": 10.995032936745558, "capacity_util_pct": 77.03281629001606}, {"date": "2015-10-31", "chem_output_idx": 106.37633972466674, "chem_ppi_idx": 100.10718440405996, "brent_usd_per_bbl": 61.54376239889556, "ttf_gas_usd_per_mmbtu": 11.279610972635725, "capacity_util_pct": 79.23994120993557}, {"date": "2015-11-30", "chem_output_idx": 108.35083941996682, "chem_ppi_idx": 100.56037672309874, "brent_usd_per_bbl": 60.403694579364384, "ttf_gas_usd_per_mmbtu": 10.96034427030346, "capacity_util_pct": 80.18371232308895}, {"date": "2015-12-31", "chem_output_idx": 107.64008011389215, "chem_ppi_idx": 100.18441426866336, "brent_usd_per_bbl": 60.478628275432456, "ttf_gas_usd_per_mmbtu": 9.413575680117386, "capacity_util_pct": 79.55953179512974}, {"date": "2016-01-31", "chem_output_idx": 108.63876185549417, "chem_ppi_idx": 99.96358985660407, "brent_usd_per_bbl": 56.40394640318725, "ttf_gas_usd_per_mmbtu": 9.331909818682073, "capacity_util_pct": 80.7698208513208}, {"date": "2016-02-29", "chem_output_idx": 109.83092127564576, "chem_ppi_idx": 99.4356512318168, "brent_usd_per_bbl": 56.034937370940334, "ttf_gas_usd_per_mmbtu": 8.750765152674177, "capacity_util_pct": 81.01532699597446}, {"date": "2016-03-31", "chem_output_idx": 107.22566759187484, "chem_ppi_idx": 96.55861750363906, "brent_usd_per_bbl": 53.97916017589027, "ttf_gas_usd_per_mmbtu": 9.540579382833478, "capacity_util_pct": 79.85222819010019}, {"date": "2016-04-30", "chem_output_idx": 107.84372897445633, "chem_ppi_idx": 96.67036357617624, "brent_usd_per_bbl": 52.80627502214907, "ttf_gas_usd_per_mmbtu": 9.32270567543916, "capacity_util_pct": 78.5103546056175}, {"date": "2016-05-31", "chem_output_idx": 107.35656389807096, "chem_ppi_idx": 95.64098421579205, "brent_usd_per_bbl": 51.95106715415607, "ttf_gas_usd_per_mmbtu": 9.385171311033952, "capacity_util_pct": 81.3841651100059}, {"date": "2016-06-30", "chem_output_idx": 103.61721239852044, "chem_ppi_idx": 94.6867988115136, "brent_usd_per_bbl": 51.46043472236998, "ttf_gas_usd_per_mmbtu": 8.768471002637636, "capacity_util_pct": 81.08305350010681}, {"date": "2016-07-31", "chem_output_idx": 105.87382737233688, "chem_ppi_idx": 94.08249147658788, "brent_usd_per_bbl": 52.09985526235094, "ttf_gas_usd_per_mmbtu": 8.417498128322416, "capacity_util_pct": 79.70080886573298}, {"date": "2016-08-31", "chem_output_idx": 105.32562535733672, "chem_ppi_idx": 94.77398800516865, "brent_usd_per_bbl": 53.75504761768766, "ttf_gas_usd_per_mmbtu": 8.40973534800522, "capacity_util_pct": 82.10828841139275}, {"date": "2016-09-30", "chem_output_idx": 103.86985462974476, "chem_ppi_idx": 93.67109671102418, "brent_usd_per_bbl": 53.54816513976412, "ttf_gas_usd_per_mmbtu": 7.467497900986184, "capacity_util_pct": 79.65112453990733}, {"date": "2016-10-31", "chem_output_idx": 103.26310210179534, "chem_ppi_idx": 92.33717847610848, "brent_usd_per_bbl": 55.78892851511439, "ttf_gas_usd_per_mmbtu": 7.649305039217574, "capacity_util_pct": 78.86288027958163}, {"date": "2016-11-30", "chem_output_idx": 103.7683464913957, "chem_ppi_idx": 92.92989405801949, "brent_usd_per_bbl": 54.68664861361342, "ttf_gas_usd_per_mmbtu": 7.58466934739075, "capacity_util_pct": 79.84412656624899}, {"date": "2016-12-31", "chem_output_idx": 107.26532747381906, "chem_ppi_idx": 93.6335791355517, "brent_usd_per_bbl": 55.26638723126638, "ttf_gas_usd_per_mmbtu": 6.898275373478573, "capacity_util_pct": 81.07783371550578}, {"date": "2017-01-31", "chem_output_idx": 107.32455165525086, "chem_ppi_idx": 92.73998651139244, "brent_usd_per_bbl": 56.78481811777564, "ttf_gas_usd_per_mmbtu": 5.693998954588529, "capacity_util_pct": 79.06254655745748}, {"date": "2017-02-28", "chem_output_idx": 108.51878208446198, "chem_ppi_idx": 93.26302343661489, "brent_usd_per_bbl": 56.94519831400088, "ttf_gas_usd_per_mmbtu": 5.932566839716482, "capacity_util_pct": 81.95122507774344}, {"date": "2017-03-31", "chem_output_idx": 111.7895781761946, "chem_ppi_idx": 92.9914344279892, "brent_usd_per_bbl": 55.68909767290005, "ttf_gas_usd_per_mmbtu": 5.792999772552439, "capacity_util_pct": 79.10347378542794}, {"date": "2017-04-30", "chem_output_idx": 113.26479770407347, "chem_ppi_idx": 93.27203284305614, "brent_usd_per_bbl": 54.17029164315045, "ttf_gas_usd_per_mmbtu": 5.55250723495722, "capacity_util_pct": 80.95442227638124}, {"date": "2017-05-31", "chem_output_idx": 115.95771267280176, "chem_ppi_idx": 92.10329371056996, "brent_usd_per_bbl": 53.431521321520805, "ttf_gas_usd_per_mmbtu": 5.448591905917914, "capacity_util_pct": 80.54446237420318}, {"date": "2017-06-30", "chem_output_idx": 114.92547163221413, "chem_ppi_idx": 92.87362048281776, "brent_usd_per_bbl": 53.78565050959344, "ttf_gas_usd_per_mmbtu": 6.30079165279477, "capacity_util_pct": 79.84594294041717}, {"date": "2017-07-31", "chem_output_idx": 116.95682338157766, "chem_ppi_idx": 93.9978809552196, "brent_usd_per_bbl": 52.18098554468549, "ttf_gas_usd_per_mmbtu": 6.275738749874784, "capacity_util_pct": 81.08053297871776}, {"date": "2017-08-31", "chem_output_idx": 117.0507819054462, "chem_ppi_idx": 94.59862786388923, "brent_usd_per_bbl": 51.85456118645426, "ttf_gas_usd_per_mmbtu": 6.319377763637661, "capacity_util_pct": 78.50020121113181}, {"date": "2017-09-30", "chem_output_idx": 119.97863365527051, "chem_ppi_idx": 95.12828708001967, "brent_usd_per_bbl": 51.60745554671029, "ttf_gas_usd_per_mmbtu": 5.610584587308928, "capacity_util_pct": 81.35757178693319}, {"date": "2017-10-31", "chem_output_idx": 117.6525744962811, "chem_ppi_idx": 91.60662729072156, "brent_usd_per_bbl": 52.45163552600671, "ttf_gas_usd_per_mmbtu": 6.400922009191434, "capacity_util_pct": 79.93631597102976}, {"date": "2017-11-30", "chem_output_idx": 115.98070993811614, "chem_ppi_idx": 91.84569281617084, "brent_usd_per_bbl": 52.7905021287165, "ttf_gas_usd_per_mmbtu": 6.888415465525922, "capacity_util_pct": 79.45756475013648}, {"date": "2017-12-31", "chem_output_idx": 119.09764405552848, "chem_ppi_idx": 91.82232536185276, "brent_usd_per_bbl": 53.35632203632475, "ttf_gas_usd_per_mmbtu": 7.502196707283237, "capacity_util_pct": 80.74917404804008}, {"date": "2018-01-31", "chem_output_idx": 118.86358904205632, "chem_ppi_idx": 91.687403980352, "brent_usd_per_bbl": 52.31994278523589, "ttf_gas_usd_per_mmbtu": 7.530863353799617, "capacity_util_pct": 81.05989901359925}, {"date": "2018-02-28", "chem_output_idx": 118.15915174851146, "chem_ppi_idx": 91.11106244246628, "brent_usd_per_bbl": 52.11689646766518, "ttf_gas_usd_per_mmbtu": 8.103872821830631, "capacity_util_pct": 80.76979543062362}, {"date": "2018-03-31", "chem_output_idx": 118.54467793762612, "chem_ppi_idx": 91.16152002595636, "brent_usd_per_bbl": 53.35717557401789, "ttf_gas_usd_per_mmbtu": 8.347965198571458, "capacity_util_pct": 81.99950382104498}, {"date": "2018-04-30", "chem_output_idx": 117.10020532148766, "chem_ppi_idx": 91.5379877283966, "brent_usd_per_bbl": 55.80209441722082, "ttf_gas_usd_per_mmbtu": 8.767686254965286, "capacity_util_pct": 81.0807260760501}, {"date": "2018-05-31", "chem_output_idx": 120.51538442008103, "chem_ppi_idx": 91.29683955437233, "brent_usd_per_bbl": 53.73365012849008, "ttf_gas_usd_per_mmbtu": 8.661583083162439, "capacity_util_pct": 81.28350663242041}, {"date": "2018-06-30", "chem_output_idx": 117.91335881402148, "chem_ppi_idx": 90.87481767749904, "brent_usd_per_bbl": 56.23037831764625, "ttf_gas_usd_per_mmbtu": 7.698199528765492, "capacity_util_pct": 79.46013606282348}, {"date": "2018-07-31", "chem_output_idx": 117.7044182365672, "chem_ppi_idx": 91.99925393934286, "brent_usd_per_bbl": 58.54720857763506, "ttf_gas_usd_per_mmbtu": 8.35863237250963, "capacity_util_pct": 80.10652377706202}, {"date": "2018-08-31", "chem_output_idx": 118.9387086123788, "chem_ppi_idx": 90.9879241978272, "brent_usd_per_bbl": 59.93572602079445, "ttf_gas_usd_per_mmbtu": 7.159914581764026, "capacity_util_pct": 80.56298258232552}, {"date": "2018-09-30", "chem_output_idx": 118.95708793195888, "chem_ppi_idx": 91.93008555847032, "brent_usd_per_bbl": 60.4131274954436, "ttf_gas_usd_per_mmbtu": 7.0237911159957, "capacity_util_pct": 79.9822577632967}, {"date": "2018-10-31", "chem_output_idx": 117.3181564551844, "chem_ppi_idx": 92.09277319127796, "brent_usd_per_bbl": 59.84684643845642, "ttf_gas_usd_per_mmbtu": 6.909804314528167, "capacity_util_pct": 80.30163523317323}, {"date": "2018-11-30", "chem_output_idx": 115.62079401285452, "chem_ppi_idx": 91.35503662309314, "brent_usd_per_bbl": 62.52267931961305, "ttf_gas_usd_per_mmbtu": 6.356719910231583, "capacity_util_pct": 80.42610476613457}, {"date": "2018-12-31", "chem_output_idx": 116.78313992044396, "chem_ppi_idx": 91.09050728470206, "brent_usd_per_bbl": 66.30976089637255, "ttf_gas_usd_per_mmbtu": 6.6762894244667175, "capacity_util_pct": 80.84424391768154}, {"date": "2019-01-31", "chem_output_idx": 114.64304734781152, "chem_ppi_idx": 90.2563235471102, "brent_usd_per_bbl": 69.99236436674451, "ttf_gas_usd_per_mmbtu": 6.570145522029255, "capacity_util_pct": 79.89839110922998}, {"date": "2019-02-28", "chem_output_idx": 116.41151622645428, "chem_ppi_idx": 90.86767314344172, "brent_usd_per_bbl": 72.80897776642446, "ttf_gas_usd_per_mmbtu": 6.344488705660179, "capacity_util_pct": 79.65020078460812}, {"date": "2019-03-31", "chem_output_idx": 113.09747092737594, "chem_ppi_idx": 91.1843539289719, "brent_usd_per_bbl": 73.5937924809433, "ttf_gas_usd_per_mmbtu": 6.613902375393747, "capacity_util_pct": 79.17168434978345}, {"date": "2019-04-30", "chem_output_idx": 112.1126066787338, "chem_ppi_idx": 90.67805377194594, "brent_usd_per_bbl": 70.97382321294684, "ttf_gas_usd_per_mmbtu": 6.366485120726061, "capacity_util_pct": 79.10826767385772}, {"date": "2019-05-31", "chem_output_idx": 112.28761924644964, "chem_ppi_idx": 89.68407165950906, "brent_usd_per_bbl": 70.96434004085165, "ttf_gas_usd_per_mmbtu": 7.114720367168589, "capacity_util_pct": 81.17245122734633}, {"date": "2019-06-30", "chem_output_idx": 109.70056211771164, "chem_ppi_idx": 89.9550715565824, "brent_usd_per_bbl": 72.37578238401748, "ttf_gas_usd_per_mmbtu": 7.317599485065916, "capacity_util_pct": 79.91547851199755}, {"date": "2019-07-31", "chem_output_idx": 111.41055195693372, "chem_ppi_idx": 90.82042423553804, "brent_usd_per_bbl": 69.6317681446744, "ttf_gas_usd_per_mmbtu": 7.04512364571974, "capacity_util_pct": 80.78694438109055}, {"date": "2019-08-31", "chem_output_idx": 111.7652833880785, "chem_ppi_idx": 90.71709640356936, "brent_usd_per_bbl": 70.46207091722636, "ttf_gas_usd_per_mmbtu": 6.03028635477221, "capacity_util_pct": 78.70263615365725}, {"date": "2019-09-30", "chem_output_idx": 109.80945481475584, "chem_ppi_idx": 91.09740861324651, "brent_usd_per_bbl": 71.37662784949202, "ttf_gas_usd_per_mmbtu": 5.431276787976841, "capacity_util_pct": 78.06183189216081}, {"date": "2019-10-31", "chem_output_idx": 106.64233846396922, "chem_ppi_idx": 90.75550085927688, "brent_usd_per_bbl": 72.88273330497971, "ttf_gas_usd_per_mmbtu": 5.924644617150442, "capacity_util_pct": 78.95090876900004}, {"date": "2019-11-30", "chem_output_idx": 103.56637158124585, "chem_ppi_idx": 90.81684435293926, "brent_usd_per_bbl": 70.33912711306674, "ttf_gas_usd_per_mmbtu": 5.90070821380259, "capacity_util_pct": 81.1466269675095}, {"date": "2019-12-31", "chem_output_idx": 103.90170347520468, "chem_ppi_idx": 90.55269530196117, "brent_usd_per_bbl": 68.9565875239312, "ttf_gas_usd_per_mmbtu": 5.76855937724159, "capacity_util_pct": 81.06807743983246}, {"date": "2020-01-31", "chem_output_idx": 101.59647015573928, "chem_ppi_idx": 90.81935023456114, "brent_usd_per_bbl": 68.05961980307703, "ttf_gas_usd_per_mmbtu": 6.578998327136963, "capacity_util_pct": 80.33203860785208}, {"date": "2020-02-29", "chem_output_idx": 99.15277383623447, "chem_ppi_idx": 89.45848349391022, "brent_usd_per_bbl": 65.71255647835314, "ttf_gas_usd_per_mmbtu": 5.937395470900181, "capacity_util_pct": 79.19782984984003}, {"date": "2020-03-31", "chem_output_idx": 98.94241832012466, "chem_ppi_idx": 90.0366267394451, "brent_usd_per_bbl": 69.23254544321554, "ttf_gas_usd_per_mmbtu": 5.665629109598741, "capacity_util_pct": 79.86919735843415}, {"date": "2020-04-30", "chem_output_idx": 103.79882302604702, "chem_ppi_idx": 89.82984111399574, "brent_usd_per_bbl": 68.2101745097625, "ttf_gas_usd_per_mmbtu": 5.455427180819866, "capacity_util_pct": 79.70223952020106}, {"date": "2020-05-31", "chem_output_idx": 104.53838239430156, "chem_ppi_idx": 90.15255646719068, "brent_usd_per_bbl": 68.88667953801057, "ttf_gas_usd_per_mmbtu": 5.717421452292356, "capacity_util_pct": 79.65502665390468}, {"date": "2020-06-30", "chem_output_idx": 106.41286581697535, "chem_ppi_idx": 89.84627962849834, "brent_usd_per_bbl": 68.35438065305397, "ttf_gas_usd_per_mmbtu": 5.421839195399126, "capacity_util_pct": 77.49393016268436}, {"date": "2020-07-31", "chem_output_idx": 107.13477359622657, "chem_ppi_idx": 90.13457378324946, "brent_usd_per_bbl": 71.67986167919223, "ttf_gas_usd_per_mmbtu": 5.162193907200202, "capacity_util_pct": 79.1420736140378}, {"date": "2020-08-31", "chem_output_idx": 109.17779966735053, "chem_ppi_idx": 89.1729898850955, "brent_usd_per_bbl": 74.57614385337328, "ttf_gas_usd_per_mmbtu": 4.540103064353489, "capacity_util_pct": 79.80989112431776}, {"date": "2020-09-30", "chem_output_idx": 106.4411178357369, "chem_ppi_idx": 90.23972441900862, "brent_usd_per_bbl": 76.00668122390438, "ttf_gas_usd_per_mmbtu": 4.812889664180597, "capacity_util_pct": 81.5164277898121}, {"date": "2020-10-31", "chem_output_idx": 105.66266564787472, "chem_ppi_idx": 88.71547051241066, "brent_usd_per_bbl": 71.14470850858949, "ttf_gas_usd_per_mmbtu": 5.133505782586994, "capacity_util_pct": 80.16074305913175}, {"date": "2020-11-30", "chem_output_idx": 106.46409331514644, "chem_ppi_idx": 87.7982790677217, "brent_usd_per_bbl": 71.25584280530991, "ttf_gas_usd_per_mmbtu": 4.941548157976064, "capacity_util_pct": 81.40088828626281}, {"date": "2020-12-31", "chem_output_idx": 106.6263376770862, "chem_ppi_idx": 88.00543382198212, "brent_usd_per_bbl": 72.73243297763341, "ttf_gas_usd_per_mmbtu": 5.006544066821933, "capacity_util_pct": 79.60629309124056}, {"date": "2021-01-31", "chem_output_idx": 106.54825125417162, "chem_ppi_idx": 89.30227677881153, "brent_usd_per_bbl": 74.95637315864006, "ttf_gas_usd_per_mmbtu": 4.514679416398596, "capacity_util_pct": 79.74731141875219}, {"date": "2021-02-28", "chem_output_idx": 105.39042432890872, "chem_ppi_idx": 89.55099561456792, "brent_usd_per_bbl": 73.57969037986322, "ttf_gas_usd_per_mmbtu": 4.347448528524288, "capacity_util_pct": 76.10057826994566}, {"date": "2021-03-31", "chem_output_idx": 104.94006345861423, "chem_ppi_idx": 89.32926608134304, "brent_usd_per_bbl": 77.71353071031598, "ttf_gas_usd_per_mmbtu": 4.854107258868967, "capacity_util_pct": 80.46333033920702}, {"date": "2021-04-30", "chem_output_idx": 103.51593553747516, "chem_ppi_idx": 88.06527143871101, "brent_usd_per_bbl": 74.69524634706684, "ttf_gas_usd_per_mmbtu": 4.90710258526496, "capacity_util_pct": 80.54709566133933}, {"date": "2021-05-31", "chem_output_idx": 98.63548176250514, "chem_ppi_idx": 87.8969841234724, "brent_usd_per_bbl": 73.22746920035942, "ttf_gas_usd_per_mmbtu": 5.903307232446538, "capacity_util_pct": 81.76375906955937}, {"date": "2021-06-30", "chem_output_idx": 96.56048929001156, "chem_ppi_idx": 87.8795145665029, "brent_usd_per_bbl": 75.31069168065147, "ttf_gas_usd_per_mmbtu": 5.543008048028643, "capacity_util_pct": 79.51323878920716}, {"date": "2021-07-31", "chem_output_idx": 97.641538636939, "chem_ppi_idx": 89.37780723402086, "brent_usd_per_bbl": 75.42160337851145, "ttf_gas_usd_per_mmbtu": 5.8063960413395, "capacity_util_pct": 80.09415415619705}, {"date": "2021-08-31", "chem_output_idx": 100.95067928907751, "chem_ppi_idx": 89.9355823461596, "brent_usd_per_bbl": 80.0911634042728, "ttf_gas_usd_per_mmbtu": 5.716287804454592, "capacity_util_pct": 79.29447204527892}, {"date": "2021-09-30", "chem_output_idx": 104.83362484742516, "chem_ppi_idx": 88.57084441070762, "brent_usd_per_bbl": 80.5454083454144, "ttf_gas_usd_per_mmbtu": 5.980983607047942, "capacity_util_pct": 78.82374293507972}, {"date": "2021-10-31", "chem_output_idx": 105.25823493066946, "chem_ppi_idx": 90.38429501102134, "brent_usd_per_bbl": 79.02982252207242, "ttf_gas_usd_per_mmbtu": 5.977534120250928, "capacity_util_pct": 79.28689203326304}, {"date": "2021-11-30", "chem_output_idx": 107.41647744545575, "chem_ppi_idx": 90.0279723380181, "brent_usd_per_bbl": 78.13970984540268, "ttf_gas_usd_per_mmbtu": 5.715102770159771, "capacity_util_pct": 79.65500147591422}, {"date": "2021-12-31", "chem_output_idx": 109.67519995683804, "chem_ppi_idx": 89.23968400931956, "brent_usd_per_bbl": 75.62326642825772, "ttf_gas_usd_per_mmbtu": 5.331874892235746, "capacity_util_pct": 81.35543802866981}, {"date": "2022-01-31", "chem_output_idx": 108.12619295388706, "chem_ppi_idx": 90.5655642421288, "brent_usd_per_bbl": 72.7794465575072, "ttf_gas_usd_per_mmbtu": 6.814044688775023, "capacity_util_pct": 80.00221160257338}, {"date": "2022-02-28", "chem_output_idx": 104.73146415199447, "chem_ppi_idx": 90.52051386558098, "brent_usd_per_bbl": 74.16897474097544, "ttf_gas_usd_per_mmbtu": 6.772012247474993, "capacity_util_pct": 79.20945519033212}, {"date": "2022-03-31", "chem_output_idx": 105.1735975295432, "chem_ppi_idx": 90.18854934123176, "brent_usd_per_bbl": 75.47344759608679, "ttf_gas_usd_per_mmbtu": 5.763041753906235, "capacity_util_pct": 80.14187782824173}, {"date": "2022-04-30", "chem_output_idx": 101.78859806894113, "chem_ppi_idx": 90.38608526247778, "brent_usd_per_bbl": 78.46225424555409, "ttf_gas_usd_per_mmbtu": 5.471634420474159, "capacity_util_pct": 80.21757135556004}, {"date": "2022-05-31", "chem_output_idx": 101.29117753257552, "chem_ppi_idx": 91.1529823074356, "brent_usd_per_bbl": 76.70596667917297, "ttf_gas_usd_per_mmbtu": 5.776630459067073, "capacity_util_pct": 79.32376794402504}, {"date": "2022-06-30", "chem_output_idx": 102.78211201895977, "chem_ppi_idx": 92.06294991867266, "brent_usd_per_bbl": 80.69307188543625, "ttf_gas_usd_per_mmbtu": 5.55012179453982, "capacity_util_pct": 81.1432336266296}, {"date": "2022-07-31", "chem_output_idx": 99.98826443369508, "chem_ppi_idx": 90.80556364111804, "brent_usd_per_bbl": 80.00035643599348, "ttf_gas_usd_per_mmbtu": 6.188270025259409, "capacity_util_pct": 78.11165110902336}, {"date": "2022-08-31", "chem_output_idx": 100.1828219743739, "chem_ppi_idx": 92.63855095393644, "brent_usd_per_bbl": 83.86961063299397, "ttf_gas_usd_per_mmbtu": 6.704959191967999, "capacity_util_pct": 79.78645537191701}, {"date": "2022-09-30", "chem_output_idx": 102.92147438617263, "chem_ppi_idx": 93.51987568671052, "brent_usd_per_bbl": 82.78772180892477, "ttf_gas_usd_per_mmbtu": 6.623741156075912, "capacity_util_pct": 80.66506606562925}, {"date": "2022-10-31", "chem_output_idx": 103.91314178540551, "chem_ppi_idx": 93.16591885308809, "brent_usd_per_bbl": 80.98105709467121, "ttf_gas_usd_per_mmbtu": 6.378181747718495, "capacity_util_pct": 78.66156748052315}, {"date": "2022-11-30", "chem_output_idx": 105.29487177648916, "chem_ppi_idx": 92.40632038635452, "brent_usd_per_bbl": 81.59017297094397, "ttf_gas_usd_per_mmbtu": 5.88554287476056, "capacity_util_pct": 80.36125374864338}, {"date": "2022-12-31", "chem_output_idx": 107.49142186344332, "chem_ppi_idx": 91.51521608350684, "brent_usd_per_bbl": 84.15433361354386, "ttf_gas_usd_per_mmbtu": 5.565026019458796, "capacity_util_pct": 81.29289305019381}, {"date": "2023-01-31", "chem_output_idx": 111.63727422219236, "chem_ppi_idx": 91.6281958092336, "brent_usd_per_bbl": 84.56180653594977, "ttf_gas_usd_per_mmbtu": 4.946351402033083, "capacity_util_pct": 80.45367126425697}, {"date": "2023-02-28", "chem_output_idx": 112.08836532974216, "chem_ppi_idx": 91.03634987046766, "brent_usd_per_bbl": 83.0893754054434, "ttf_gas_usd_per_mmbtu": 5.446656409820679, "capacity_util_pct": 78.30984005702308}, {"date": "2023-03-31", "chem_output_idx": 114.95798908040382, "chem_ppi_idx": 90.3426927146194, "brent_usd_per_bbl": 79.81250920629357, "ttf_gas_usd_per_mmbtu": 6.185810131854709, "capacity_util_pct": 79.27180497256475}, {"date": "2023-04-30", "chem_output_idx": 115.16073384578382, "chem_ppi_idx": 91.0785827229178, "brent_usd_per_bbl": 76.52631301671282, "ttf_gas_usd_per_mmbtu": 5.5944046858963645, "capacity_util_pct": 81.23230340250426}, {"date": "2023-05-31", "chem_output_idx": 114.2477157986105, "chem_ppi_idx": 91.4112314886959, "brent_usd_per_bbl": 77.68911272530276, "ttf_gas_usd_per_mmbtu": 5.089768239225177, "capacity_util_pct": 80.29833524506529}, {"date": "2023-06-30", "chem_output_idx": 115.36033031571426, "chem_ppi_idx": 91.05125968193704, "brent_usd_per_bbl": 80.03039653443571, "ttf_gas_usd_per_mmbtu": 4.418283836423888, "capacity_util_pct": 79.99014106151003}, {"date": "2023-07-31", "chem_output_idx": 114.29148552531696, "chem_ppi_idx": 91.7222617611834, "brent_usd_per_bbl": 79.63691020428692, "ttf_gas_usd_per_mmbtu": 4.090401002753033, "capacity_util_pct": 80.4412005947155}, {"date": "2023-08-31", "chem_output_idx": 113.50455062625817, "chem_ppi_idx": 92.98506634833603, "brent_usd_per_bbl": 77.1110611811331, "ttf_gas_usd_per_mmbtu": 3.190367346561861, "capacity_util_pct": 80.72104895000588}, {"date": "2023-09-30", "chem_output_idx": 112.45433357777092, "chem_ppi_idx": 91.97289740587703, "brent_usd_per_bbl": 79.15737822525034, "ttf_gas_usd_per_mmbtu": 2.9117484692867204, "capacity_util_pct": 79.29153476340201}, {"date": "2023-10-31", "chem_output_idx": 107.50862045774674, "chem_ppi_idx": 91.41970274729972, "brent_usd_per_bbl": 76.17445588611955, "ttf_gas_usd_per_mmbtu": 3.230080247271216, "capacity_util_pct": 79.70959991992704}, {"date": "2023-11-30", "chem_output_idx": 107.98633521434584, "chem_ppi_idx": 92.28551910781664, "brent_usd_per_bbl": 74.56223449763351, "ttf_gas_usd_per_mmbtu": 3.141980014089925, "capacity_util_pct": 80.14291364966682}, {"date": "2023-12-31", "chem_output_idx": 105.43348348643448, "chem_ppi_idx": 92.95138787329932, "brent_usd_per_bbl": 75.96438975732627, "ttf_gas_usd_per_mmbtu": 3.3643000001038867, "capacity_util_pct": 79.45604227821268}, {"date": "2024-01-31", "chem_output_idx": 105.46059684968694, "chem_ppi_idx": 93.16234663685634, "brent_usd_per_bbl": 71.00572016127633, "ttf_gas_usd_per_mmbtu": 3.235237666883217, "capacity_util_pct": 79.86654844146274}, {"date": "2024-02-29", "chem_output_idx": 108.63420883800678, "chem_ppi_idx": 94.2516041075828, "brent_usd_per_bbl": 71.83354211715927, "ttf_gas_usd_per_mmbtu": 3.724586266867531, "capacity_util_pct": 81.297871761182}, {"date": "2024-03-31", "chem_output_idx": 107.70032103363094, "chem_ppi_idx": 93.23150756856748, "brent_usd_per_bbl": 70.59097491641118, "ttf_gas_usd_per_mmbtu": 3.78442218103331, "capacity_util_pct": 79.03218013530794}, {"date": "2024-04-30", "chem_output_idx": 106.77715794638232, "chem_ppi_idx": 91.8626337894229, "brent_usd_per_bbl": 70.82277949331099, "ttf_gas_usd_per_mmbtu": 3.670518862992041, "capacity_util_pct": 81.92666270913514}, {"date": "2024-05-31", "chem_output_idx": 109.72057973755582, "chem_ppi_idx": 91.07007605358956, "brent_usd_per_bbl": 70.66212021968089, "ttf_gas_usd_per_mmbtu": 4.502023460795022, "capacity_util_pct": 81.87934437738198}, {"date": "2024-06-30", "chem_output_idx": 111.17758300868086, "chem_ppi_idx": 91.1817454627526, "brent_usd_per_bbl": 71.09187675315617, "ttf_gas_usd_per_mmbtu": 4.386664771333101, "capacity_util_pct": 78.28656056203569}, {"date": "2024-07-31", "chem_output_idx": 113.70376186961757, "chem_ppi_idx": 90.45874133433416, "brent_usd_per_bbl": 72.58789971684537, "ttf_gas_usd_per_mmbtu": 3.978366616452982, "capacity_util_pct": 79.85897733488697}, {"date": "2024-08-31", "chem_output_idx": 113.10366330300783, "chem_ppi_idx": 90.01908184264005, "brent_usd_per_bbl": 70.9550902235508, "ttf_gas_usd_per_mmbtu": 4.043150186825305, "capacity_util_pct": 80.34269156964568}, {"date": "2024-09-30", "chem_output_idx": 115.03641780843196, "chem_ppi_idx": 89.14566053597656, "brent_usd_per_bbl": 74.04526574988769, "ttf_gas_usd_per_mmbtu": 4.03060840785998, "capacity_util_pct": 79.23912891249357}, {"date": "2024-10-31", "chem_output_idx": 113.5952056877962, "chem_ppi_idx": 88.59428708633601, "brent_usd_per_bbl": 75.6758751316355, "ttf_gas_usd_per_mmbtu": 4.38953499817299, "capacity_util_pct": 79.25891949631527}, {"date": "2024-11-30", "chem_output_idx": 112.37127397853963, "chem_ppi_idx": 87.70856029959138, "brent_usd_per_bbl": 77.61582983097766, "ttf_gas_usd_per_mmbtu": 4.077534777294886, "capacity_util_pct": 79.76258430326546}, {"date": "2024-12-31", "chem_output_idx": 113.87573619961492, "chem_ppi_idx": 88.03145251478612, "brent_usd_per_bbl": 80.37613618326625, "ttf_gas_usd_per_mmbtu": 4.348669512270504, "capacity_util_pct": 80.73917808711155}, {"date": "2025-01-31", "chem_output_idx": 112.6739109241103, "chem_ppi_idx": 88.73399519315498, "brent_usd_per_bbl": 82.29784849660521, "ttf_gas_usd_per_mmbtu": 4.65568855327887, "capacity_util_pct": 79.4886661610529}, {"date": "2025-02-28", "chem_output_idx": 114.70348431282812, "chem_ppi_idx": 88.30869879400424, "brent_usd_per_bbl": 84.4084340029794, "ttf_gas_usd_per_mmbtu": 4.413530046684806, "capacity_util_pct": 81.82669381162012}, {"date": "2025-03-31", "chem_output_idx": 120.54741168419496, "chem_ppi_idx": 88.12585461915263, "brent_usd_per_bbl": 84.60007337062625, "ttf_gas_usd_per_mmbtu": 4.471546642517025, "capacity_util_pct": 80.28997400233854}, {"date": "2025-04-30", "chem_output_idx": 116.85754544904322, "chem_ppi_idx": 87.615299381483, "brent_usd_per_bbl": 81.05532274168536, "ttf_gas_usd_per_mmbtu": 4.184027072684422, "capacity_util_pct": 79.89742471591667}, {"date": "2025-05-31", "chem_output_idx": 115.1299466485599, "chem_ppi_idx": 88.08199529075505, "brent_usd_per_bbl": 80.72760331842504, "ttf_gas_usd_per_mmbtu": 5.0477310393109205, "capacity_util_pct": 81.44925968513145}, {"date": "2025-06-30", "chem_output_idx": 118.0410150654556, "chem_ppi_idx": 88.160472565793, "brent_usd_per_bbl": 78.88531794121906, "ttf_gas_usd_per_mmbtu": 4.771246913556168, "capacity_util_pct": 80.62628119506036}, {"date": "2025-07-31", "chem_output_idx": 117.98679995054596, "chem_ppi_idx": 89.5771508579412, "brent_usd_per_bbl": 75.58915897380236, "ttf_gas_usd_per_mmbtu": 4.601405142910209, "capacity_util_pct": 80.36928677568757}, {"date": "2025-08-31", "chem_output_idx": 121.09706900796743, "chem_ppi_idx": 88.60121353912062, "brent_usd_per_bbl": 76.17752386741105, "ttf_gas_usd_per_mmbtu": 4.225318662081472, "capacity_util_pct": 79.66885961723048}, {"date": "2025-09-30", "chem_output_idx": 118.94797157811264, "chem_ppi_idx": 88.9229780022701, "brent_usd_per_bbl": 74.88922136725122, "ttf_gas_usd_per_mmbtu": 4.109925816899114, "capacity_util_pct": 81.81398561389275}, {"date": "2025-10-31", "chem_output_idx": 119.9817883871, "chem_ppi_idx": 89.31866613754383, "brent_usd_per_bbl": 72.61095748938939, "ttf_gas_usd_per_mmbtu": 4.107994268222155, "capacity_util_pct": 80.81182158973999}, {"date": "2025-11-30", "chem_output_idx": 119.78477468339813, "chem_ppi_idx": 88.9973052893052, "brent_usd_per_bbl": 70.37413588376545, "ttf_gas_usd_per_mmbtu": 4.368230589216611, "capacity_util_pct": 79.79658866405529}, {"date": "2025-12-31", "chem_output_idx": 120.42432756253812, "chem_ppi_idx": 89.51815312259149, "brent_usd_per_bbl": 70.94311225512875, "ttf_gas_usd_per_mmbtu": 4.160016730149106, "capacity_util_pct": 78.4228008493173}, {"date": "2026-01-31", "chem_output_idx": 121.47647006958516, "chem_ppi_idx": 88.23963216916613, "brent_usd_per_bbl": 71.7105930884468, "ttf_gas_usd_per_mmbtu": 4.098648065621866, "capacity_util_pct": 80.37295154176192}, {"date": "2026-02-28", "chem_output_idx": 118.93291402280546, "chem_ppi_idx": 90.129203628214, "brent_usd_per_bbl": 74.61280957614234, "ttf_gas_usd_per_mmbtu": 3.65954209865276, "capacity_util_pct": 78.8562599078984}, {"date": "2026-03-31", "chem_output_idx": 116.70759940103986, "chem_ppi_idx": 88.92770997280712, "brent_usd_per_bbl": 74.5816697007231, "ttf_gas_usd_per_mmbtu": 3.425152005123725, "capacity_util_pct": 78.28405404824169}], "growth": [{"date": "2015-01-31", "output_log_growth": null, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-02-28", "output_log_growth": 0.006559672349979451, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-03-31", "output_log_growth": 0.026690420962659722, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-04-30", "output_log_growth": 0.009474409768650105, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-05-31", "output_log_growth": 0.017088664426522016, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-06-30", "output_log_growth": -0.02279043465403774, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-07-31", "output_log_growth": 0.0012120757577838148, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-08-31", "output_log_growth": 0.004150026421855024, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-09-30", "output_log_growth": 0.01887438924084428, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-10-31", "output_log_growth": 0.004136801017681435, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-11-30", "output_log_growth": 0.018391294081792964, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2015-12-31", "output_log_growth": -0.006581405117820793, "output_yoy_pct": null, "brent_yoy_pct": null, "gas_yoy_pct": null, "ppi_yoy_pct": null}, {"date": "2016-01-31", "output_log_growth": 0.009235196846199223, "output_yoy_pct": 8.64411111021095, "brent_yoy_pct": -6.557734111107649, "gas_yoy_pct": 7.065096803104121, "ppi_yoy_pct": -2.7922243317739515}, {"date": "2016-02-29", "output_log_growth": 0.010913836980948055, "output_yoy_pct": 9.07952757330781, "brent_yoy_pct": -6.817794513031394, "gas_yoy_pct": -10.582876599241464, "ppi_yoy_pct": -4.362997982594408}, {"date": "2016-03-31", "output_log_growth": -0.024006447494063998, "output_yoy_pct": 4.009840727635439, "brent_yoy_pct": -12.476795306120447, "gas_yoy_pct": -11.142894388135982, "ppi_yoy_pct": -6.517619386934292}, {"date": "2016-04-30", "output_log_growth": 0.005747568867503716, "output_yoy_pct": 3.6371566375207998, "brent_yoy_pct": -14.988297721689836, "gas_yoy_pct": 5.4694048141168405, "ppi_yoy_pct": -5.064560318313394}, {"date": "2016-05-31", "output_log_growth": -0.0045275580443986385, "output_yoy_pct": 1.4755343904287344, "brent_yoy_pct": -15.014066550778482, "gas_yoy_pct": -3.6922620906544523, "ppi_yoy_pct": -5.159521897409469}, {"date": "2016-06-30", "output_log_growth": -0.03545220842278418, "output_yoy_pct": 0.2093570135540901, "brent_yoy_pct": -17.047752184614453, "gas_yoy_pct": -13.206069801524745, "ppi_yoy_pct": -6.140515336928498}, {"date": "2016-07-31", "output_log_growth": 0.021544618456877274, "output_yoy_pct": 2.242611283463436, "brent_yoy_pct": -19.724860710882375, "gas_yoy_pct": -20.681220367536525, "ppi_yoy_pct": -6.815505530678045}, {"date": "2016-08-31", "output_log_growth": -0.005191332071001753, "output_yoy_pct": 1.3084754341777582, "brent_yoy_pct": -19.43856349194215, "gas_yoy_pct": -23.74330420291928, "ppi_yoy_pct": -5.338843215035904}, {"date": "2016-09-30", "output_log_growth": -0.01391802755552618, "output_yoy_pct": -1.9707662454592878, "brent_yoy_pct": -17.712961773353175, "gas_yoy_pct": -38.68836295919373, "ppi_yoy_pct": -5.222799556706015}, {"date": "2016-10-31", "output_log_growth": -0.005858597038296054, "output_yoy_pct": -2.9703060510570367, "brent_yoy_pct": -9.817306948565996, "gas_yoy_pct": -38.83819580685595, "ppi_yoy_pct": -8.079459521628607}, {"date": "2016-11-30", "output_log_growth": 0.004880856469483774, "output_yoy_pct": -4.321349812287956, "brent_yoy_pct": -9.943067581413878, "gas_yoy_pct": -36.815467366129, "ppi_yoy_pct": -7.891292897751345}, {"date": "2016-12-31", "output_log_growth": 0.03314448397617831, "output_yoy_pct": -0.3487609028880456, "brent_yoy_pct": -9.012515309176461, "gas_yoy_pct": -31.088143419162883, "ppi_yoy_pct": -6.762355973543777}, {"date": "2017-01-31", "output_log_growth": 0.0005519755468048615, "output_yoy_pct": -1.2170830328274818, "brent_yoy_pct": 0.6729875596954926, "gas_yoy_pct": -49.402688519085714, "ppi_yoy_pct": -7.500628473521953}, {"date": "2017-02-28", "output_log_growth": 0.01106582811593082, "output_yoy_pct": -1.2018839193292052, "brent_yoy_pct": 1.6113994447756852, "gas_yoy_pct": -38.86841665987786, "ppi_yoy_pct": -6.408700337103301}, {"date": "2017-03-31", "output_log_growth": 0.02969507314758868, "output_yoy_pct": 4.168268144836063, "brent_yoy_pct": 3.118634538473497, "gas_yoy_pct": -49.89039627172755, "ppi_yoy_pct": -3.7642873215009587}, {"date": "2017-04-30", "output_log_growth": 0.013110081964878617, "output_yoy_pct": 4.904519454573553, "brent_yoy_pct": 2.5502604738085743, "gas_yoy_pct": -51.82033152950982, "ppi_yoy_pct": -3.578656972039962}, {"date": "2017-05-31", "output_log_growth": 0.02349715883825443, "output_yoy_pct": 7.706991142838859, "brent_yoy_pct": 2.8098599453785233, "gas_yoy_pct": -54.37737141718944, "ppi_yoy_pct": -3.7690728424097486}, {"date": "2017-06-30", "output_log_growth": -0.008941733209256064, "output_yoy_pct": 10.358038664191671, "brent_yoy_pct": 4.419345784896089, "gas_yoy_pct": -33.048716245259136, "ppi_yoy_pct": -1.9334940940161083}, {"date": "2017-07-31", "output_log_growth": 0.017520990252433144, "output_yoy_pct": 9.955675843747258, "brent_yoy_pct": 0.1555996251574765, "gas_yoy_pct": -29.362144254551282, "ppi_yoy_pct": -0.08997273450921384}, {"date": "2017-08-31", "output_log_growth": 0.0008030382499963906, "output_yoy_pct": 10.555112875847072, "brent_yoy_pct": -3.5994672077857004, "gas_yoy_pct": -28.57692565715024, "ppi_yoy_pct": -0.18520121359442143}, {"date": "2017-09-30", "output_log_growth": 0.024705800043609116, "output_yoy_pct": 14.417495635760602, "brent_yoy_pct": -3.6915382486970127, "gas_yoy_pct": -28.59050714044504, "ppi_yoy_pct": 1.5436695565084868}, {"date": "2017-10-31", "output_log_growth": -0.019577676450733605, "output_yoy_pct": 13.045587694516847, "brent_yoy_pct": -6.168391906288617, "gas_yoy_pct": -17.817275523953114, "ppi_yoy_pct": -0.7943241399400947}, {"date": "2017-11-30", "output_log_growth": -0.014312113964157547, "output_yoy_pct": 11.126290651152715, "brent_yoy_pct": -3.5288305183097446, "gas_yoy_pct": -9.628793628816723, "ppi_yoy_pct": -1.173546466045483}, {"date": "2017-12-31", "output_log_growth": 0.026519811294669182, "output_yoy_pct": 10.463823383001802, "brent_yoy_pct": -3.517242601469084, "gas_yoy_pct": 8.392443747266555, "ppi_yoy_pct": -1.9533606873777032}, {"date": "2018-01-31", "output_log_growth": -0.001967169911699429, "output_yoy_pct": 10.211908837151373, "brent_yoy_pct": -8.189138974679544, "gas_yoy_pct": 27.95968852014219, "ppi_yoy_pct": -1.1414724864296844}, {"date": "2018-02-28", "output_log_growth": -0.005944065664647447, "output_yoy_pct": 8.510919459093547, "brent_yoy_pct": -8.860016769040424, "gas_yoy_pct": 31.188509759696515, "ppi_yoy_pct": -2.3344481536938133}, {"date": "2018-03-31", "output_log_growth": 0.0032574591676750586, "output_yoy_pct": 5.8671580611021845, "brent_yoy_pct": -4.277592610795056, "gas_yoy_pct": 36.53675675199843, "ppi_yoy_pct": -1.9874507483653936}, {"date": "2018-04-30", "output_log_growth": -0.012259894539088378, "output_yoy_pct": 3.330160410705485, "brent_yoy_pct": 2.9678769536424454, "gas_yoy_pct": 45.68233668061574, "ppi_yoy_pct": -1.8766255197906645}, {"date": "2018-05-31", "output_log_growth": 0.02874739232931134, "output_yoy_pct": 3.855183759811176, "brent_yoy_pct": 0.5638578343321488, "gas_yoy_pct": 46.35403005217293, "ppi_yoy_pct": -0.8794534002658061}, {"date": "2018-06-30", "output_log_growth": -0.021827308882070184, "output_yoy_pct": 2.566626192529764, "brent_yoy_pct": 4.445043788139191, "gas_yoy_pct": 20.03111894078813, "ppi_yoy_pct": -2.175671989336525}, {"date": "2018-07-31", "output_log_growth": -0.0017735557549034553, "output_yoy_pct": 0.637171591796104, "brent_yoy_pct": 11.511524610102297, "gas_yoy_pct": 28.66036147569073, "ppi_yoy_pct": -2.1491771325137243}, {"date": "2018-08-31", "output_log_growth": 0.010431755067971338, "output_yoy_pct": 1.6000432735935988, "brent_yoy_pct": 14.482985536818749, "gas_yoy_pct": 12.487730278904753, "ppi_yoy_pct": -3.8916174754089816}, {"date": "2018-09-30", "output_log_growth": 0.00015451571556646115, "output_yoy_pct": -0.8550851592106667, "brent_yoy_pct": 15.754027457550057, "gas_yoy_pct": 22.464819866243623, "ppi_yoy_pct": -3.419802239280223}, {"date": "2018-10-31", "output_log_growth": -0.013873292293451023, "output_yoy_pct": -0.2846467434824085, "brent_yoy_pct": 13.189722259883352, "gas_yoy_pct": 7.649927428197567, "ppi_yoy_pct": 0.5292853805729081}, {"date": "2018-11-30", "output_log_growth": -0.014573711104527654, "output_yoy_pct": -0.31080645751941915, "brent_yoy_pct": 16.919806942975192, "gas_yoy_pct": -8.032857567232842, "ppi_yoy_pct": -0.5356500137764009}, {"date": "2018-12-31", "output_log_growth": 0.010002890912543805, "output_yoy_pct": -1.962498495731957, "brent_yoy_pct": 21.734463765205312, "gas_yoy_pct": -11.663351412581612, "ppi_yoy_pct": -0.8001865931531071}, {"date": "2019-01-31", "output_log_growth": -0.01849534492234639, "output_yoy_pct": -3.615315996796653, "brent_yoy_pct": 29.100854203058724, "gas_yoy_pct": -13.647370873551633, "ppi_yoy_pct": -1.5731346891191045}, {"date": "2019-02-28", "output_log_growth": 0.015308102000698653, "output_yoy_pct": -1.490099230262043, "brent_yoy_pct": 33.435006398340136, "gas_yoy_pct": -24.47555578892664, "ppi_yoy_pct": -0.26749218073849335}, {"date": "2019-03-31", "output_log_growth": -0.02888144556958938, "output_yoy_pct": -4.703989703988487, "brent_yoy_pct": 32.155221220133036, "gas_yoy_pct": -23.284396621860793, "ppi_yoy_pct": 0.025044606318314067}, {"date": "2019-04-30", "output_log_growth": -0.008746238510644488, "output_yoy_pct": -4.352624101144098, "brent_yoy_pct": 24.049971887624277, "gas_yoy_pct": -32.00254156920015, "ppi_yoy_pct": -0.9438689739631911}, {"date": "2019-05-31", "output_log_growth": 0.0015598255525715032, "output_yoy_pct": -7.071380778818082, "brent_yoy_pct": 27.81380608457633, "gas_yoy_pct": -19.67315810322734, "ppi_yoy_pct": -1.7822991124767817}, {"date": "2019-06-30", "output_log_growth": -0.0233091171251667, "output_yoy_pct": -7.219561603127733, "brent_yoy_pct": 25.241459565588187, "gas_yoy_pct": -5.070413909393157, "ppi_yoy_pct": -1.0172588792658033}, {"date": "2019-07-31", "output_log_growth": 0.015467552940340745, "output_yoy_pct": -5.495450733603313, "brent_yoy_pct": 17.338748902992673, "gas_yoy_pct": -17.095912586494123, "ppi_yoy_pct": -1.289627083363154}, {"date": "2019-08-31", "output_log_growth": 0.0031789438971294715, "output_yoy_pct": -6.2207318506875, "brent_yoy_pct": 16.180180881437334, "gas_yoy_pct": -17.170355301500862, "ppi_yoy_pct": -0.29809632547594944}, {"date": "2019-09-30", "output_log_growth": -0.017654353449224836, "output_yoy_pct": -8.00161876716663, "brent_yoy_pct": 16.67640507491619, "gas_yoy_pct": -25.71288750664571, "ppi_yoy_pct": -0.9098990224106096}, {"date": "2019-10-31", "output_log_growth": -0.02926603058035049, "output_yoy_pct": -9.540892595856576, "brent_yoy_pct": 19.70630169041403, "gas_yoy_pct": -15.382061321301554, "ppi_yoy_pct": -1.4627386366907302}, {"date": "2019-11-30", "output_log_growth": -0.029267925716663257, "output_yoy_pct": -11.010314057070136, "brent_yoy_pct": 11.779885739531615, "gas_yoy_pct": -7.444012698316249, "ppi_yoy_pct": -0.5908637853989873}, {"date": "2019-12-31", "output_log_growth": 0.003232614809580703, "output_yoy_pct": -11.687341667366447, "brent_yoy_pct": 3.9140030740646203, "gas_yoy_pct": -14.613998314445142, "ppi_yoy_pct": -0.5921648007233493}, {"date": "2020-01-31", "output_log_growth": -0.022436501325576508, "output_yoy_pct": -12.081457307689458, "brent_yoy_pct": -2.8002072769634623, "gas_yoy_pct": 0.13465221077295642, "ppi_yoy_pct": 0.6218709450638293}, {"date": "2020-02-29", "output_log_growth": -0.02434696124504132, "output_yoy_pct": -16.046963632263456, "brent_yoy_pct": -10.254924294485157, "gas_yoy_pct": -6.6315951370399695, "ppi_yoy_pct": -1.562966086381401}, {"date": "2020-03-31", "output_log_growth": -0.0021237829438121025, "output_yoy_pct": -13.371197369685728, "brent_yoy_pct": -6.108961895071552, "gas_yoy_pct": -15.475591383591958, "ppi_yoy_pct": -1.2666773251621244}, {"date": "2020-04-30", "output_log_growth": 0.04791658401438781, "output_yoy_pct": -7.704915117182498, "brent_yoy_pct": -3.9717381835515653, "gas_yoy_pct": -15.443660473192544, "ppi_yoy_pct": -0.9398136316122851}, {"date": "2020-05-31", "output_log_growth": 0.007099667802826559, "output_yoy_pct": -7.1509308921569925, "brent_yoy_pct": -2.9714668958106927, "gas_yoy_pct": -21.8648020196486, "ppi_yoy_pct": 0.5210127350913751}, {"date": "2020-06-30", "output_log_growth": 0.017772189322281307, "output_yoy_pct": -3.042800247412192, "brent_yoy_pct": -5.716609337461431, "gas_yoy_pct": -29.984724215579494, "ppi_yoy_pct": -0.12101348587592042}, {"date": "2020-07-31", "output_log_growth": 0.0067611192637331285, "output_yoy_pct": -3.9134436150729535, "brent_yoy_pct": 2.8988936901935602, "gas_yoy_pct": -31.097403109816213, "ppi_yoy_pct": -0.7580379033437445}, {"date": "2020-08-31", "output_log_growth": 0.01889013469947365, "output_yoy_pct": -2.3423245348385358, "brent_yoy_pct": 5.674610470893082, "gas_yoy_pct": -28.384478477012753, "ppi_yoy_pct": -1.7167643580907388}, {"date": "2020-09-30", "output_log_growth": -0.025385794811889184, "output_yoy_pct": -3.1154686711049706, "brent_yoy_pct": 6.285077254901061, "gas_yoy_pct": -12.087657669660734, "ppi_yoy_pct": -0.9459624464915883}, {"date": "2020-10-31", "output_log_growth": -0.007340328120045925, "output_yoy_pct": -0.9228984250745143, "brent_yoy_pct": -2.413580558927464, "gas_yoy_pct": -14.333189079687436, "ppi_yoy_pct": -2.2734798835791103}, {"date": "2020-11-30", "output_log_growth": 0.007556156369383338, "output_yoy_pct": 2.759509783530145, "brent_yoy_pct": 1.2948602641237983, "gas_yoy_pct": -17.73937055400601, "ppi_yoy_pct": -3.3802879043677514}, {"date": "2020-12-31", "output_log_growth": 0.001522775025944334, "output_yoy_pct": 2.5885258051665083, "brent_yoy_pct": 5.331026552570428, "gas_yoy_pct": -14.167650464239356, "ppi_yoy_pct": -2.8533389234343787}, {"date": "2021-01-31", "output_log_growth": -0.0007326053897749318, "output_yoy_pct": 4.758915398746666, "brent_yoy_pct": 9.652217021526699, "gas_yoy_pct": -37.65483236025564, "ppi_yoy_pct": -1.6845387812248092}, {"date": "2021-02-28", "output_log_growth": -0.010926164755976409, "output_yoy_pct": 6.100995047653157, "brent_yoy_pct": 11.307901610722482, "gas_yoy_pct": -31.168143645591684, "ppi_yoy_pct": 0.10336003361901547}, {"date": "2021-03-31", "output_log_growth": -0.004282418239025532, "output_yoy_pct": 5.885131518131814, "brent_yoy_pct": 11.555832069316985, "gas_yoy_pct": -15.45927362508066, "ppi_yoy_pct": -0.7887389448498539}, {"date": "2021-04-30", "output_log_growth": -0.013663795572242954, "output_yoy_pct": -0.272906440531262, "brent_yoy_pct": 9.082271344603576, "gas_yoy_pct": -10.592726338475678, "ppi_yoy_pct": -1.9838966064897434}, {"date": "2021-05-31", "output_log_growth": -0.048294514919853704, "output_yoy_pct": -5.812324712799288, "brent_yoy_pct": 6.110778390777316, "gas_yoy_pct": 3.199483303640993, "ppi_yoy_pct": -2.533781338569252}, {"date": "2021-06-30", "output_log_growth": -0.02126140849093794, "output_yoy_pct": -9.715684494121213, "brent_yoy_pct": 9.691645991541087, "gas_yoy_pct": 2.210222952816121, "ppi_yoy_pct": -2.2133482221451395}, {"date": "2021-07-31", "output_log_growth": 0.011133359676376742, "output_yoy_pct": -9.278460452856852, "brent_yoy_pct": 5.0883911966106865, "gas_yoy_pct": 11.759841075522814, "ppi_yoy_pct": -0.8431407661799284}, {"date": "2021-08-31", "output_log_growth": 0.03332907003677921, "output_yoy_pct": -7.834566919126296, "brent_yoy_pct": 7.134485986300909, "gas_yoy_pct": 23.036989627938897, "ppi_yoy_pct": 0.8515472595547635}, {"date": "2021-09-30", "output_log_growth": 0.0377424945052649, "output_yoy_pct": -1.5217379874108872, "brent_yoy_pct": 5.799985695363574, "gas_yoy_pct": 21.728737170420786, "ppi_yoy_pct": -1.866700027862045}, {"date": "2021-10-31", "output_log_growth": 0.004042142916262925, "output_yoy_pct": -0.3834908837800022, "brent_yoy_pct": 10.510933066726835, "gas_yoy_pct": 15.221931425030565, "ppi_yoy_pct": 1.863623655018376}, {"date": "2021-11-30", "output_log_growth": 0.020296880463434697, "output_yoy_pct": 0.8905815256251337, "brent_yoy_pct": 9.222155628248796, "gas_yoy_pct": 14.543360520966587, "ppi_yoy_pct": 2.5078525942988428}, {"date": "2021-12-31", "output_log_growth": 0.02080967863993699, "output_yoy_pct": 2.8192718870243993, "brent_yoy_pct": 3.8976587030616017, "gas_yoy_pct": 6.295706842062576, "ppi_yoy_pct": 1.3927268100547785}, {"date": "2022-01-31", "output_log_growth": -0.014224271935995958, "output_yoy_pct": 1.4701052324022967, "brent_yoy_pct": -2.9472665236247586, "gas_yoy_pct": 41.16516973652848, "ppi_yoy_pct": 1.4047071769572206}, {"date": "2022-02-28", "output_log_growth": -0.03189940834944771, "output_yoy_pct": -0.6272191269448335, "brent_yoy_pct": 0.797689082802755, "gas_yoy_pct": 44.32091449666198, "ppi_yoy_pct": 1.0768251148521202}, {"date": "2022-03-31", "output_log_growth": 0.004212704809313905, "output_yoy_pct": 0.22229317788911018, "brent_yoy_pct": -2.9248475699438004, "gas_yoy_pct": 17.164021353015848, "ppi_yoy_pct": 0.9573309707532118}, {"date": "2022-04-30", "output_log_growth": -0.03271420015904081, "output_yoy_pct": -1.6827472807906751, "brent_yoy_pct": 4.920121798419519, "gas_yoy_pct": 10.889370617252126, "ppi_yoy_pct": 2.601207102931724}, {"date": "2022-05-31", "output_log_growth": -0.0048987796017776475, "output_yoy_pct": 2.6568262510169305, "brent_yoy_pct": 4.640888490085349, "gas_yoy_pct": -2.1692194601230064, "ppi_yoy_pct": 3.6373725477374386}, {"date": "2022-06-30", "output_log_growth": 0.014612015292557956, "output_yoy_pct": 6.24416862936652, "brent_yoy_pct": 6.903060883074286, "gas_yoy_pct": 0.12825501165623088, "ppi_yoy_pct": 4.650585763229209}, {"date": "2022-07-31", "output_log_growth": -0.02755850684399075, "output_yoy_pct": 2.374981977329771, "brent_yoy_pct": 5.893733918172384, "gas_yoy_pct": 6.369549297743848, "ppi_yoy_pct": 1.5848147178371796}, {"date": "2022-08-31", "output_log_growth": 0.001943913133870545, "output_yoy_pct": -0.7635337129610953, "brent_yoy_pct": 4.609781003770408, "gas_yoy_pct": 15.952782103160335, "ppi_yoy_pct": 2.9611709665030794}, {"date": "2022-09-30", "output_log_growth": 0.026969576294241016, "output_yoy_pct": -1.8408255340634838, "brent_yoy_pct": 2.7458658846851947, "gas_yoy_pct": 10.207530241941697, "ppi_yoy_pct": 5.43712542942707}, {"date": "2022-10-31", "output_log_growth": 0.009589062181539099, "output_yoy_pct": -1.2861336075358665, "brent_yoy_pct": 2.4389982782350828, "gas_yoy_pct": 6.487493577003378, "ppi_yoy_pct": 3.0311452721707433}, {"date": "2022-11-30", "output_log_growth": 0.013209341828039456, "output_yoy_pct": -1.9948874710753906, "brent_yoy_pct": 4.321044908609473, "gas_yoy_pct": 2.9386704040551104, "ppi_yoy_pct": 2.6074952961481657}, {"date": "2022-12-31", "output_log_growth": 0.0206463308886482, "output_yoy_pct": -2.0112222462042695, "brent_yoy_pct": 10.688842516075514, "gas_yoy_pct": 4.279872180122135, "ppi_yoy_pct": 2.5179425800943456}, {"date": "2023-01-31", "output_log_growth": 0.03784394482423448, "output_yoy_pct": 3.195599429818774, "brent_yoy_pct": 15.0049117453813, "gas_yoy_pct": -32.033566329594045, "ppi_yoy_pct": 1.166498365583557}, {"date": "2023-02-28", "output_log_growth": 0.0040325437865282865, "output_yoy_pct": 6.788794643416374, "brent_yoy_pct": 11.357090800706615, "gas_yoy_pct": -21.779635519535656, "ppi_yoy_pct": 0.5682378316909542}, {"date": "2023-03-31", "output_log_growth": 0.025279212900696457, "output_yoy_pct": 8.895445452554629, "brent_yoy_pct": 5.589934221238124, "gas_yoy_pct": 7.079256299338832, "ppi_yoy_pct": 0.17076646578253474}, {"date": "2023-04-30", "output_log_growth": 0.0017620888492810849, "output_yoy_pct": 12.343074353386818, "brent_yoy_pct": -2.4983028818374997, "gas_yoy_pct": 2.2189566047435827, "ppi_yoy_pct": 0.7632348817888435}, {"date": "2023-05-31", "output_log_growth": -0.007959801560929236, "output_yoy_pct": 12.03697215747166, "brent_yoy_pct": 1.2735630415669164, "gas_yoy_pct": -12.658825017740071, "ppi_yoy_pct": 0.2829134452395188}, {"date": "2023-06-30", "output_log_growth": 0.009691500315099688, "output_yoy_pct": 11.544920659725832, "brent_yoy_pct": -0.8246202159067018, "gas_yoy_pct": -22.80685240895741, "ppi_yoy_pct": -1.1049940176338424}, {"date": "2023-07-31", "output_log_growth": -0.009308461195438156, "output_yoy_pct": 13.369925224581092, "brent_yoy_pct": -0.45534087035656867, "gas_yoy_pct": -41.40125587469685, "ppi_yoy_pct": 1.0044559786042129}, {"date": "2023-08-31", "output_log_growth": -0.006909145942989525, "output_yoy_pct": 12.484619316895085, "brent_yoy_pct": -8.401660281575651, "gas_yoy_pct": -74.27113646771485, "ppi_yoy_pct": 0.3733531346382435}, {"date": "2023-09-30", "output_log_growth": -0.009295714259170751, "output_yoy_pct": 8.858090261553908, "brent_yoy_pct": -4.484176282162711, "gas_yoy_pct": -82.19065903417632, "ppi_yoy_pct": -1.6680047659870745}, {"date": "2023-10-31", "output_log_growth": -0.04497618082471089, "output_yoy_pct": 3.4015659609289095, "brent_yoy_pct": -6.11890823927963, "gas_yoy_pct": -68.03760829356375, "ppi_yoy_pct": -1.8920955881161383}, {"date": "2023-11-30", "output_log_growth": 0.004433658668794749, "output_yoy_pct": 2.523997645004439, "brent_yoy_pct": -9.007468639133442, "gas_yoy_pct": -62.76458047305793, "ppi_yoy_pct": -0.13081389637488172}, {"date": "2023-12-31", "output_log_growth": -0.023924427531500925, "output_yoy_pct": -1.9330781970104738, "brent_yoy_pct": -10.238774333121547, "gas_yoy_pct": -50.32817425572409, "ppi_yoy_pct": 1.5571391001983237}, {"date": "2024-01-31", "output_log_growth": 0.00025712778052966456, "output_yoy_pct": -5.691759901380955, "brent_yoy_pct": -17.472226583991368, "gas_yoy_pct": -42.45478216913543, "ppi_yoy_pct": 1.6604595190601756}, {"date": "2024-02-29", "output_log_growth": 0.02964896283147933, "output_yoy_pct": -3.1301179968858506, "brent_yoy_pct": -14.556531318922428, "gas_yoy_pct": -38.004614125455106, "ppi_yoy_pct": 3.470897000808293}, {"date": "2024-03-31", "output_log_growth": -0.008633791435012306, "output_yoy_pct": -6.521418430456727, "brent_yoy_pct": -12.277794685920895, "gas_yoy_pct": -49.13647655835278, "ppi_yoy_pct": 3.147559236975628}, {"date": "2024-04-30", "output_log_growth": -0.008608538226923201, "output_yoy_pct": -7.5584811380771555, "brent_yoy_pct": -7.745394948735207, "gas_yoy_pct": -42.14339033767875, "ppi_yoy_pct": 0.857166998262926}, {"date": "2024-05-31", "output_log_growth": 0.027192923101875266, "output_yoy_pct": -4.043208671796705, "brent_yoy_pct": -9.480548077022277, "gas_yoy_pct": -12.270534329218385, "ppi_yoy_pct": -0.3739077028402704}, {"date": "2024-06-30", "output_log_growth": 0.013191819999090804, "output_yoy_pct": -3.6931767033975937, "brent_yoy_pct": -11.843343991747801, "gas_yoy_pct": -0.7182143228065652, "ppi_yoy_pct": 0.1432076511194147}, {"date": "2024-07-31", "output_log_growth": 0.02246771628807931, "output_yoy_pct": -0.5155589550458473, "brent_yoy_pct": -9.267944403750938, "gas_yoy_pct": -2.7771672747582965, "ppi_yoy_pct": -1.3871267201610138}, {"date": "2024-08-31", "output_log_growth": -0.005291713589129721, "output_yoy_pct": -0.3538157196598668, "brent_yoy_pct": -8.319959081760864, "gas_yoy_pct": 23.68880715118893, "ppi_yoy_pct": -3.241723502891425}, {"date": "2024-09-30", "output_log_growth": 0.01694398228231009, "output_yoy_pct": 2.270153934488217, "brent_yoy_pct": -6.6761394726902346, "gas_yoy_pct": 32.51635849577965, "ppi_yoy_pct": -3.1222273093619357}, {"date": "2024-10-31", "output_log_growth": -0.012607452882898329, "output_yoy_pct": 5.507026728669473, "brent_yoy_pct": -0.6566762717032049, "gas_yoy_pct": 30.671631722705506, "ppi_yoy_pct": -3.1393645698146955}, {"date": "2024-11-30", "output_log_growth": -0.01083296673378964, "output_yoy_pct": 3.980364188411034, "brent_yoy_pct": 4.013726000384388, "gas_yoy_pct": 26.063940562438724, "ppi_yoy_pct": -5.086773629027608}, {"date": "2024-12-31", "output_log_growth": 0.01329948532920433, "output_yoy_pct": 7.70275547448156, "brent_yoy_pct": 5.645264383097182, "gas_yoy_pct": 25.66500213544749, "ppi_yoy_pct": -5.438247989097}, {"date": "2025-01-31", "output_log_growth": -0.010609917648514156, "output_yoy_pct": 6.616050931577178, "brent_yoy_pct": 14.75845256893864, "gas_yoy_pct": 36.39874241077814, "ppi_yoy_pct": -4.870055777551752}, {"date": "2025-02-28", "output_log_growth": 0.0178524984014512, "output_yoy_pct": 5.4364044885743645, "brent_yoy_pct": 16.13157981797544, "gas_yoy_pct": 16.971905699352607, "ppi_yoy_pct": -6.512922904628482}, {"date": "2025-03-31", "output_log_growth": 0.049692732214234425, "output_yoy_pct": 11.269056853499038, "brent_yoy_pct": 18.103283159432593, "gas_yoy_pct": 16.684113881023155, "ppi_yoy_pct": -5.631976970980013}, {"date": "2025-04-30", "output_log_growth": -0.03108750080208811, "output_yoy_pct": 9.021160595982547, "brent_yoy_pct": 13.495122514030022, "gas_yoy_pct": 13.094116563336321, "ppi_yoy_pct": -4.733871709720816}, {"date": "2025-05-31", "output_log_growth": -0.014894171420715807, "output_yoy_pct": 4.81245114372344, "brent_yoy_pct": 13.317091792581426, "gas_yoy_pct": 11.441188951093007, "ppi_yoy_pct": -3.33611313680775}, {"date": "2025-06-30", "output_log_growth": 0.024970688088615134, "output_yoy_pct": 5.990337952675873, "brent_yoy_pct": 10.402204686919436, "gas_yoy_pct": 8.403847303135192, "ppi_yoy_pct": -3.369601193604499}, {"date": "2025-07-31", "output_log_growth": -0.0004593959899130695, "output_yoy_pct": 3.697626724876635, "brent_yoy_pct": 4.051463571252167, "gas_yoy_pct": 14.549038551594574, "ppi_yoy_pct": -0.97935751817122}, {"date": "2025-08-31", "output_log_growth": 0.026019693811590194, "output_yoy_pct": 6.828767464948626, "brent_yoy_pct": 7.101931196686362, "gas_yoy_pct": 4.407054360206697, "ppi_yoy_pct": -1.587611398384059}, {"date": "2025-09-30", "output_log_growth": -0.017906263317559734, "output_yoy_pct": 3.343742904961644, "brent_yoy_pct": 1.1333367673076467, "gas_yoy_pct": 1.948764467285935, "ppi_yoy_pct": -0.2501087800927948}, {"date": "2025-10-31", "output_log_growth": 0.008653783947499605, "output_yoy_pct": 5.469866588001437, "brent_yoy_pct": -4.134357913569975, "gas_yoy_pct": -6.628840171619377, "ppi_yoy_pct": 0.8143117641488118}, {"date": "2025-11-30", "output_log_growth": -0.0016433796732826522, "output_yoy_pct": 6.388825294052136, "brent_yoy_pct": -9.794559140694492, "gas_yoy_pct": 6.8865443071206345, "ppi_yoy_pct": 1.4586588121509259}, {"date": "2025-12-31", "output_log_growth": 0.005324980480688524, "output_yoy_pct": 5.5913748092005555, "brent_yoy_pct": -12.483899844900836, "gas_yoy_pct": -4.435084313240978, "ppi_yoy_pct": 1.6747267337881233}, {"date": "2026-01-31", "output_log_growth": 0.00869901341559487, "output_yoy_pct": 7.522267915611458, "brent_yoy_pct": -13.7706486625075, "gas_yoy_pct": -12.743263747207978, "ppi_yoy_pct": -0.5586869831856411}, {"date": "2026-02-28", "output_log_growth": -0.02116099560845086, "output_yoy_pct": 3.620918514621252, "brent_yoy_pct": -12.335512294942763, "gas_yoy_pct": -18.733680343039772, "ppi_yoy_pct": 2.0405619870619063}, {"date": "2026-03-31", "output_log_growth": -0.018887930148437704, "output_yoy_pct": -3.237147721645961, "brent_yoy_pct": -12.604037132743606, "gas_yoy_pct": -26.6588502029504, "ppi_yoy_pct": 0.9057833292462014}]}, "lag_correlations": [{"driver": "brent", "driver_label": "Brent", "lag_months": 0.0, "correlation": 0.005502781739546707}, {"driver": "brent", "driver_label": "Brent", "lag_months": 1.0, "correlation": 0.02649497176177646}, {"driver": "brent", "driver_label": "Brent", "lag_months": 2.0, "correlation": 0.054770531110539145}, {"driver": "brent", "driver_label": "Brent", "lag_months": 3.0, "correlation": 0.03639857185484791}, {"driver": "brent", "driver_label": "Brent", "lag_months": 4.0, "correlation": -0.09454538313276939}, {"driver": "brent", "driver_label": "Brent", "lag_months": 5.0, "correlation": 0.09841263791169357}, {"driver": "brent", "driver_label": "Brent", "lag_months": 6.0, "correlation": 0.031831542736411804}, {"driver": "gas", "driver_label": "TTF gas", "lag_months": 0.0, "correlation": -0.14354055864937532}, {"driver": "gas", "driver_label": "TTF gas", "lag_months": 1.0, "correlation": 0.05724097066678214}, {"driver": "gas", "driver_label": "TTF gas", "lag_months": 2.0, "correlation": 0.15897176726578663}, {"driver": "gas", "driver_label": "TTF gas", "lag_months": 3.0, "correlation": 0.05887923905196437}, {"driver": "gas", "driver_label": "TTF gas", "lag_months": 4.0, "correlation": 0.08374876151667147}, {"driver": "gas", "driver_label": "TTF gas", "lag_months": 5.0, "correlation": 0.13177078149480237}, {"driver": "gas", "driver_label": "TTF gas", "lag_months": 6.0, "correlation": -0.011207111110832583}, {"driver": "ppi", "driver_label": "Chemicals PPI", "lag_months": 0.0, "correlation": 0.044294406588391726}, {"driver": "ppi", "driver_label": "Chemicals PPI", "lag_months": 1.0, "correlation": 0.15090415495033543}, {"driver": "ppi", "driver_label": "Chemicals PPI", "lag_months": 2.0, "correlation": -0.10220541428529745}, {"driver": "ppi", "driver_label": "Chemicals PPI", "lag_months": 3.0, "correlation": 0.0340286525334333}, {"driver": "ppi", "driver_label": "Chemicals PPI", "lag_months": 4.0, "correlation": -0.15573301106216383}, {"driver": "ppi", "driver_label": "Chemicals PPI", "lag_months": 5.0, "correlation": 0.061585056983849404}, {"driver": "ppi", "driver_label": "Chemicals PPI", "lag_months": 6.0, "correlation": -0.03244622733204476}], "coefficients": [{"term": "const", "driver": null, "lag_months": null, "coef": -0.21446480982718497, "std_err": 0.11372607707488082, "p_value": 0.05932170507407869, "ci_low": -0.4373638249969777, "ci_high": 0.008434205342607748, "impact_of_10pct_move": -0.21446480982718497}, {"term": "brent_l0", "driver": "brent", "lag_months": 0.0, "coef": -0.011175621304379955, "std_err": 0.05125551538317697, "p_value": 0.8273999410629962, "ci_low": -0.11163458546444552, "ci_high": 0.08928334285568562, "impact_of_10pct_move": -0.0010651504759454972}, {"term": "brent_l1", "driver": "brent", "lag_months": 1.0, "coef": 0.005840164284302304, "std_err": 0.05944432680412166, "p_value": 0.921736997098314, "ci_low": -0.11066857533700512, "ci_high": 0.12234890390560972, "impact_of_10pct_move": 0.0005566271080236488}, {"term": "brent_l2", "driver": "brent", "lag_months": 2.0, "coef": 0.0385220993357301, "std_err": 0.05162973147654589, "p_value": 0.4555934770258736, "ci_low": -0.06267031488977383, "ci_high": 0.13971451356123404, "impact_of_10pct_move": 0.0036715482141284994}, {"term": "brent_l3", "driver": "brent", "lag_months": 3.0, "coef": 0.04078464573387512, "std_err": 0.045152759153113516, "p_value": 0.3663883376666428, "ci_low": -0.04771313600883864, "ci_high": 0.12928242747658888, "impact_of_10pct_move": 0.0038871919181513287}, {"term": "brent_l4", "driver": "brent", "lag_months": 4.0, "coef": -0.056885134106748766, "std_err": 0.053957792501851336, "p_value": 0.2917673594860537, "ci_low": -0.16264046409566277, "ci_high": 0.048870195882165235, "impact_of_10pct_move": -0.005421732359907358}, {"term": "brent_l5", "driver": "brent", "lag_months": 5.0, "coef": 0.04120098454153908, "std_err": 0.047299577424936595, "p_value": 0.38371891565256366, "ci_low": -0.05150448369530044, "ci_high": 0.1339064527783786, "impact_of_10pct_move": 0.0039268732447692994}, {"term": "brent_l6", "driver": "brent", "lag_months": 6.0, "coef": 0.026039357409399885, "std_err": 0.04255667043562143, "p_value": 0.5406205458846114, "ci_low": -0.05737018394635861, "ci_high": 0.10944889876515838, "impact_of_10pct_move": 0.002481815836678982}, {"term": "gas_l0", "driver": "gas", "lag_months": 0.0, "coef": -0.0400745714544683, "std_err": 0.018027445549066497, "p_value": 0.026217445816597674, "ci_low": -0.07540771546389553, "ci_high": -0.004741427445041066, "impact_of_10pct_move": -0.003819514610906638}, {"term": "gas_l1", "driver": "gas", "lag_months": 1.0, "coef": 0.02259936351177586, "std_err": 0.016982378598206224, "p_value": 0.18327006017315517, "ci_low": -0.010685486912532152, "ci_high": 0.055884213936083865, "impact_of_10pct_move": 0.002153949399770656}, {"term": "gas_l2", "driver": "gas", "lag_months": 2.0, "coef": 0.02555882548880381, "std_err": 0.02081855312213381, "p_value": 0.21956162997466233, "ci_low": -0.015244788840812352, "ci_high": 0.06636243981841997, "impact_of_10pct_move": 0.0024360162529252524}, {"term": "gas_l3", "driver": "gas", "lag_months": 3.0, "coef": 0.0038494941439529574, "std_err": 0.018913970178288598, "p_value": 0.8387235354147853, "ci_low": -0.03322120621015732, "ci_high": 0.04092019449806323, "impact_of_10pct_move": 0.000366895979015852}, {"term": "gas_l4", "driver": "gas", "lag_months": 4.0, "coef": 0.030431501933032866, "std_err": 0.022738117470548113, "p_value": 0.18078319498521467, "ci_low": -0.014134389385482428, "ci_high": 0.07499739325154817, "impact_of_10pct_move": 0.0029004319209530224}, {"term": "gas_l5", "driver": "gas", "lag_months": 5.0, "coef": 0.03114843346098741, "std_err": 0.016732446095423528, "p_value": 0.06266529520130751, "ci_low": -0.0016465582593005595, "ci_high": 0.06394342518127538, "impact_of_10pct_move": 0.0029687627937897594}, {"term": "gas_l6", "driver": "gas", "lag_months": 6.0, "coef": 0.0029525732859382557, "std_err": 0.018906128455671398, "p_value": 0.8758988894745862, "ci_low": -0.03410275757426555, "ci_high": 0.04000790414614207, "impact_of_10pct_move": 0.00028141029076822146}, {"term": "ppi_l0", "driver": "ppi", "lag_months": 0.0, "coef": 0.09317469156411289, "std_err": 0.1444314540818192, "p_value": 0.5188535878789772, "ci_low": -0.18990575667100335, "ci_high": 0.37625513979922914, "impact_of_10pct_move": 0.00888049660618811}, {"term": "ppi_l1", "driver": "ppi", "lag_months": 1.0, "coef": 0.18519174858995202, "std_err": 0.15713549480368125, "p_value": 0.23857814366750973, "ci_low": -0.12278816191814401, "ci_high": 0.49317165909804805, "impact_of_10pct_move": 0.017650658856385653}, {"term": "ppi_l2", "driver": "ppi", "lag_months": 2.0, "coef": -0.18079856994972837, "std_err": 0.1806622415951044, "p_value": 0.3169454617501134, "ci_low": -0.5348900568424071, "ci_high": 0.17329291694295035, "impact_of_10pct_move": -0.01723194421027342}, {"term": "ppi_l3", "driver": "ppi", "lag_months": 3.0, "coef": 0.09594911970555837, "std_err": 0.17481644532821822, "p_value": 0.5831040214944154, "ci_low": -0.24668481704306472, "ci_high": 0.43858305645418144, "impact_of_10pct_move": 0.009144927851203459}, {"term": "ppi_l4", "driver": "ppi", "lag_months": 4.0, "coef": -0.35647560143964685, "std_err": 0.18832054787129454, "p_value": 0.05836860094665448, "ci_low": -0.7255770928162353, "ci_high": 0.012625889936941581, "impact_of_10pct_move": -0.03397575366906759}, {"term": "ppi_l5", "driver": "ppi", "lag_months": 5.0, "coef": 0.09800627066288047, "std_err": 0.17746857241365793, "p_value": 0.5807799710888578, "ci_low": -0.24982573965562765, "ci_high": 0.4458382809813886, "impact_of_10pct_move": 0.009340995278830467}, {"term": "ppi_l6", "driver": "ppi", "lag_months": 6.0, "coef": 0.13928942313260223, "std_err": 0.22492358196770862, "p_value": 0.5357355860310052, "ci_low": -0.3015526967978494, "ci_high": 0.5801315430630538, "impact_of_10pct_move": 0.013275699963609005}, {"term": "capacity_util_pct", "driver": "capacity", "lag_months": null, "coef": 0.002695926924709513, "std_err": 0.001414781484469231, "p_value": 0.05670952617394368, "ci_low": -7.699383084429356e-05, "ci_high": 0.005468847680263319, "impact_of_10pct_move": 0.002695926924709513}], "cumulative_betas": [{"driver": "brent", "driver_label": "Brent", "cumulative_beta_0_6": 0.08432649589371777, "cumulative_beta_0_3": 0.07397128804952757, "best_correlation_lag": 5.0, "best_correlation": 0.09841263791169357}, {"driver": "gas", "driver_label": "TTF gas", "cumulative_beta_0_6": 0.07646562037002286, "cumulative_beta_0_3": 0.011933111690064327, "best_correlation_lag": 2.0, "best_correlation": 0.15897176726578663}, {"driver": "ppi", "driver_label": "Chemicals PPI", "cumulative_beta_0_6": 0.07433708226573076, "cumulative_beta_0_3": 0.1935169899098949, "best_correlation_lag": 4.0, "best_correlation": -0.15573301106216383}, {"driver": "capacity", "driver_label": "Capacity utilization", "cumulative_beta_0_6": 0.002695926924709513, "cumulative_beta_0_3": 0.002695926924709513, "best_correlation_lag": null, "best_correlation": null}], "driver_betas_by_lag": {"brent": [{"lag_months": 0.0, "coef": -0.011175621304379955, "p_value": 0.8273999410629962}, {"lag_months": 1.0, "coef": 0.005840164284302304, "p_value": 0.921736997098314}, {"lag_months": 2.0, "coef": 0.0385220993357301, "p_value": 0.4555934770258736}, {"lag_months": 3.0, "coef": 0.04078464573387512, "p_value": 0.3663883376666428}, {"lag_months": 4.0, "coef": -0.056885134106748766, "p_value": 0.2917673594860537}, {"lag_months": 5.0, "coef": 0.04120098454153908, "p_value": 0.38371891565256366}, {"lag_months": 6.0, "coef": 0.026039357409399885, "p_value": 0.5406205458846114}], "gas": [{"lag_months": 0.0, "coef": -0.0400745714544683, "p_value": 0.026217445816597674}, {"lag_months": 1.0, "coef": 0.02259936351177586, "p_value": 0.18327006017315517}, {"lag_months": 2.0, "coef": 0.02555882548880381, "p_value": 0.21956162997466233}, {"lag_months": 3.0, "coef": 0.0038494941439529574, "p_value": 0.8387235354147853}, {"lag_months": 4.0, "coef": 0.030431501933032866, "p_value": 0.18078319498521467}, {"lag_months": 5.0, "coef": 0.03114843346098741, "p_value": 0.06266529520130751}, {"lag_months": 6.0, "coef": 0.0029525732859382557, "p_value": 0.8758988894745862}], "ppi": [{"lag_months": 0.0, "coef": 0.09317469156411289, "p_value": 0.5188535878789772}, {"lag_months": 1.0, "coef": 0.18519174858995202, "p_value": 0.23857814366750973}, {"lag_months": 2.0, "coef": -0.18079856994972837, "p_value": 0.3169454617501134}, {"lag_months": 3.0, "coef": 0.09594911970555837, "p_value": 0.5831040214944154}, {"lag_months": 4.0, "coef": -0.35647560143964685, "p_value": 0.05836860094665448}, {"lag_months": 5.0, "coef": 0.09800627066288047, "p_value": 0.5807799710888578}, {"lag_months": 6.0, "coef": 0.13928942313260223, "p_value": 0.5357355860310052}]}, "capacity_beta": 0.002695926924709513, "residual_quantiles": {"p10": -0.02118984987500089, "p50": 0.0013609446771311595, "p90": 0.020924767385606082, "std": 0.017362438515607627}, "scenarios": [{"name": "Oil shock", "description": "Brent spike with modest gas and price pass-through", "inputs": {"description": "Brent spike with modest gas and price pass-through", "horizon_months": 3.0, "brent_pct": 20.0, "gas_pct": 8.0, "ppi_pct": 4.0, "capacity_pts": 0.0}, "deterministic_log_impact": 0.010499445364509755, "deterministic_pct_impact": 0.010554757955337335, "bootstrap_pct_impact": {"p10": -0.009949359283162318, "p50": 0.012184212919305715, "p90": 0.03138526040603806}}, {"name": "Gas squeeze", "description": "TTF shock with partial output-price offset", "inputs": {"description": "TTF shock with partial output-price offset", "horizon_months": 3.0, "brent_pct": 5.0, "gas_pct": 35.0, "ppi_pct": 8.0, "capacity_pts": -1.0}, "deterministic_log_impact": 0.008858110423663917, "deterministic_pct_impact": 0.00889745958438981, "bootstrap_pct_impact": {"p10": -0.013847809782103981, "p50": 0.010168958377748893, "p90": 0.029693800246720636}}, {"name": "Margin squeeze", "description": "Input inflation with weak pricing and lower utilization", "inputs": {"description": "Input inflation with weak pricing and lower utilization", "horizon_months": 4.0, "brent_pct": 12.0, "gas_pct": 28.0, "ppi_pct": 3.0, "capacity_pts": -2.0}, "deterministic_log_impact": 0.011657154292599978, "deterministic_pct_impact": 0.011725363700561653, "bootstrap_pct_impact": {"p10": -0.011083659856463535, "p50": 0.013165336566801411, "p90": 0.03437618395796149}}, {"name": "Demand rebound", "description": "Input costs ease while pricing and utilization improve", "inputs": {"description": "Input costs ease while pricing and utilization improve", "horizon_months": 3.0, "brent_pct": -6.0, "gas_pct": -12.0, "ppi_pct": 4.0, "capacity_pts": 1.5}, "deterministic_log_impact": 0.004783778861080494, "deterministic_pct_impact": 0.004795239398781348, "bootstrap_pct_impact": {"p10": -0.018466023829329603, "p50": 0.006061568223709735, "p90": 0.025507021251253592}}], "sources": [{"series": "brent", "source": "EIA", "url": "https://example.com"}]};
+    const driverMeta = {
+      brent: { label: 'Brent' },
+      gas: { label: 'TTF gas' },
+      ppi: { label: 'Chemicals PPI' }
+    };
+
+    function fmtNum(value, digits = 2) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      return Number(value).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+    }
+
+    function fmtPct(value, digits = 1) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      return `${(Number(value) * 100).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits })}%`;
+    }
+
+    function fmtPctPoint(value, digits = 1) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      return `${Number(value).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits })} pts`;
+    }
+
+    function fmtMaybeSigned(value, digits = 1) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      const num = Number(value);
+      const sign = num > 0 ? '+' : '';
+      return `${sign}${num.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits })}%`;
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function baseLayout() {
+      return {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#edf2ff', family: 'ui-sans-serif, system-ui, sans-serif' },
+        margin: { l: 48, r: 20, t: 20, b: 40 },
+        xaxis: { gridcolor: 'rgba(255,255,255,0.08)', zerolinecolor: 'rgba(255,255,255,0.08)' },
+        yaxis: { gridcolor: 'rgba(255,255,255,0.08)', zerolinecolor: 'rgba(255,255,255,0.08)' },
+        legend: { orientation: 'h', y: 1.15 }
+      };
+    }
+
+    function buildHero() {
+      const pills = [
+        `Sample: ${payload.meta.start_date} → ${payload.meta.end_date}`,
+        `Latest observation: ${payload.meta.latest_observation_date}`,
+        `Max lag: ${payload.meta.max_lag_months} months`,
+        `Bootstrap draws: ${payload.meta.bootstrap_draws}`
+      ];
+      document.getElementById('heroPills').innerHTML = pills.map(v => `<span class="pill">${escapeHtml(v)}</span>`).join('');
+
+      const latest = payload.latest_values;
+      document.getElementById('latestSnapshot').innerHTML = `
+        <div class="metric" style="padding:12px; box-shadow:none; background:rgba(255,255,255,0.03); margin-bottom:10px;">
+          <div class="label">Chemicals output index</div>
+          <div class="value">${fmtNum(latest.chem_output_idx, 1)}</div>
+        </div>
+        <div class="metric" style="padding:12px; box-shadow:none; background:rgba(255,255,255,0.03); margin-bottom:10px;">
+          <div class="label">TTF gas</div>
+          <div class="value">${fmtNum(latest.ttf_gas_usd_per_mmbtu, 2)}</div>
+        </div>
+        <div class="metric" style="padding:12px; box-shadow:none; background:rgba(255,255,255,0.03);">
+          <div class="label">Brent</div>
+          <div class="value">${fmtNum(latest.brent_usd_per_bbl, 2)}</div>
+        </div>
+      `;
+    }
+
+    function buildSummaryCards() {
+      const h = payload.headline;
+      const cards = [
+        { label: 'R²', value: fmtNum(h.r_squared, 3) },
+        { label: 'Adj. R²', value: fmtNum(h.adj_r_squared, 3) },
+        { label: 'Observations', value: fmtNum(h.nobs, 0) },
+        { label: 'Strongest modeled driver', value: h.strongest_driver || '—' }
+      ];
+      document.getElementById('summaryCards').innerHTML = cards.map(card => `
+        <div class="metric">
+          <div class="label">${escapeHtml(card.label)}</div>
+          <div class="value">${escapeHtml(card.value)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderLevelsChart() {
+      const rows = payload.series.levels;
+      const dates = rows.map(r => r.date);
+      const seriesKeys = [
+        ['chem_output_idx', 'Chemicals output'],
+        ['chem_ppi_idx', 'Chemicals PPI'],
+        ['brent_usd_per_bbl', 'Brent'],
+        ['ttf_gas_usd_per_mmbtu', 'TTF gas']
+      ];
+      const traces = seriesKeys.map(([key, label]) => {
+        const firstRow = rows.find(r => r[key] !== null && r[key] !== undefined);
+        const base = firstRow ? Number(firstRow[key]) : null;
+        const y = rows.map(r => {
+          const val = r[key];
+          if (base === null || val === null || val === undefined) return null;
+          return (Number(val) / base) * 100;
+        });
+        return { x: dates, y, type: 'scatter', mode: 'lines', name: label, line: { width: 2.3 } };
+      });
+      Plotly.newPlot('levelsChart', traces, {
+        ...baseLayout(),
+        yaxis: { title: 'Index (base = 100)', gridcolor: 'rgba(255,255,255,0.08)' },
+        xaxis: { title: '' }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderGrowthChart() {
+      const rows = payload.series.growth;
+      Plotly.newPlot('growthChart', [{
+        x: rows.map(r => r.date),
+        y: rows.map(r => r.output_yoy_pct),
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Output YoY %',
+        line: { width: 2.4 }
+      }], {
+        ...baseLayout(),
+        yaxis: { title: 'YoY %', gridcolor: 'rgba(255,255,255,0.08)' },
+        xaxis: { title: '' }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderBetaChart() {
+      const rows = payload.cumulative_betas.filter(r => r.driver !== 'capacity');
+      Plotly.newPlot('betaChart', [{
+        x: rows.map(r => r.driver_label),
+        y: rows.map(r => r.cumulative_beta_0_6),
+        type: 'bar',
+        text: rows.map(r => fmtNum(r.cumulative_beta_0_6, 3)),
+        textposition: 'outside'
+      }], {
+        ...baseLayout(),
+        yaxis: { title: 'Cumulative beta (0-6m)', gridcolor: 'rgba(255,255,255,0.08)' },
+        xaxis: { title: '' }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    function populateDriverSelect() {
+      const select = document.getElementById('driverSelect');
+      select.innerHTML = Object.entries(driverMeta).map(([key, value]) =>
+        `<option value="${escapeHtml(key)}">${escapeHtml(value.label)}</option>`
+      ).join('');
+      select.value = 'gas';
+      select.addEventListener('change', () => renderLagCorrelationChart(select.value));
+      renderLagCorrelationChart(select.value);
+    }
+
+    function renderLagCorrelationChart(driver) {
+      const rows = payload.lag_correlations.filter(r => r.driver === driver);
+      Plotly.newPlot('lagCorrChart', [{
+        x: rows.map(r => r.lag_months),
+        y: rows.map(r => r.correlation),
+        type: 'bar',
+        text: rows.map(r => fmtNum(r.correlation, 3)),
+        textposition: 'outside'
+      }], {
+        ...baseLayout(),
+        xaxis: { title: 'Lag (months)', dtick: 1, gridcolor: 'rgba(255,255,255,0.08)' },
+        yaxis: { title: 'Correlation', gridcolor: 'rgba(255,255,255,0.08)' }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderScenarioTable() {
+      const body = document.getElementById('scenarioTableBody');
+      body.innerHTML = payload.scenarios.map(s => {
+        const inputs = s.inputs;
+        const inputText = `H=${inputs.horizon_months}m · Brent ${inputs.brent_pct}% · Gas ${inputs.gas_pct}% · PPI ${inputs.ppi_pct}% · Cap ${inputs.capacity_pts} pts`;
+        return `
+          <tr>
+            <td><strong>${escapeHtml(s.name)}</strong><div class="muted">${escapeHtml(s.description || '')}</div></td>
+            <td>${escapeHtml(inputText)}</td>
+            <td>${fmtPct(s.deterministic_pct_impact)}</td>
+            <td>${fmtPct(s.bootstrap_pct_impact.p10)} / ${fmtPct(s.bootstrap_pct_impact.p90)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderCoefficientTable() {
+      const rows = payload.coefficients.filter(r => r.term !== 'const');
+      const sorted = rows.sort((a, b) => Math.abs(Number(b.coef || 0)) - Math.abs(Number(a.coef || 0)));
+      document.getElementById('coefTableBody').innerHTML = sorted.map(r => `
+        <tr>
+          <td>${escapeHtml(r.term)}</td>
+          <td>${fmtNum(r.coef, 4)}</td>
+          <td>${fmtNum(r.p_value, 4)}</td>
+          <td>${fmtNum(r.ci_low, 4)} to ${fmtNum(r.ci_high, 4)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderSources() {
+      const rows = payload.sources || [];
+      document.getElementById('sourceTableBody').innerHTML = rows.map(r => {
+        const details = [r.dataset ? `dataset=${r.dataset}` : null, r.url || r.resolved_xlsx_url || null, r.note || null]
+          .filter(Boolean)
+          .map(v => escapeHtml(v))
+          .join('<br>');
+        return `
+          <tr>
+            <td>${escapeHtml(r.series)}</td>
+            <td>${escapeHtml(r.source || '—')}</td>
+            <td>${details || '—'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderNotes() {
+      document.getElementById('notesBox').innerHTML = payload.meta.notes
+        .map(note => `<div class="callout">${escapeHtml(note)}</div>`)
+        .join('');
+    }
+
+    function populateHorizonSelect() {
+      const select = document.getElementById('horizonMonths');
+      const maxLag = Number(payload.meta.max_lag_months || 6);
+      select.innerHTML = Array.from({ length: maxLag + 1 }, (_, i) => i)
+        .filter(v => v > 0)
+        .map(v => `<option value="${v}">${v}</option>`)
+        .join('');
+      select.value = '3';
+    }
+
+    function customImpactFromInputs(inputs) {
+      let impactLog = 0;
+      const horizon = Number(inputs.horizon_months || 3);
+      Object.keys(driverMeta).forEach(driver => {
+        const shockPct = Number(inputs[`${driver}_pct`] || 0);
+        const shockLog = Math.log(1 + (shockPct / 100));
+        (payload.driver_betas_by_lag[driver] || []).forEach(row => {
+          if (Number(row.lag_months) < horizon) {
+            impactLog += Number(row.coef || 0) * shockLog;
+          }
+        });
+      });
+      if (payload.capacity_beta !== null && payload.capacity_beta !== undefined) {
+        impactLog += Number(payload.capacity_beta) * Number(inputs.capacity_pts || 0);
+      }
+      const rq = payload.residual_quantiles || {};
+      return {
+        deterministic: Math.exp(impactLog) - 1,
+        p10: Math.exp(impactLog + Number(rq.p10 || 0)) - 1,
+        p90: Math.exp(impactLog + Number(rq.p90 || 0)) - 1
+      };
+    }
+
+    function readScenarioInputs() {
+      return {
+        brent_pct: Number(document.getElementById('brentPct').value || 0),
+        gas_pct: Number(document.getElementById('gasPct').value || 0),
+        ppi_pct: Number(document.getElementById('ppiPct').value || 0),
+        capacity_pts: Number(document.getElementById('capacityPts').value || 0),
+        horizon_months: Number(document.getElementById('horizonMonths').value || 3)
+      };
+    }
+
+    function renderCustomScenario() {
+      const inputs = readScenarioInputs();
+      const result = customImpactFromInputs(inputs);
+      document.getElementById('scenarioDeterministic').textContent = fmtPct(result.deterministic);
+      document.getElementById('scenarioP10').textContent = fmtPct(result.p10);
+      document.getElementById('scenarioP90').textContent = fmtPct(result.p90);
+      document.getElementById('scenarioDescription').innerHTML = `
+        Custom scenario using a ${escapeHtml(String(inputs.horizon_months))}-month shock horizon.
+        Brent ${escapeHtml(String(inputs.brent_pct))}%, gas ${escapeHtml(String(inputs.gas_pct))}%,
+        chemicals PPI ${escapeHtml(String(inputs.ppi_pct))}%, capacity ${escapeHtml(String(inputs.capacity_pts))} pts.
+      `;
+    }
+
+    function resetToGasSqueeze() {
+      const gasSqueeze = payload.scenarios.find(s => s.name === 'Gas squeeze');
+      const inputs = (gasSqueeze && gasSqueeze.inputs) || { brent_pct: 5, gas_pct: 35, ppi_pct: 8, capacity_pts: -1, horizon_months: 3 };
+      document.getElementById('brentPct').value = inputs.brent_pct;
+      document.getElementById('gasPct').value = inputs.gas_pct;
+      document.getElementById('ppiPct').value = inputs.ppi_pct;
+      document.getElementById('capacityPts').value = inputs.capacity_pts;
+      document.getElementById('horizonMonths').value = inputs.horizon_months;
+      renderCustomScenario();
+    }
+
+    function wireScenarioButtons() {
+      document.getElementById('runScenarioBtn').addEventListener('click', renderCustomScenario);
+      document.getElementById('resetScenarioBtn').addEventListener('click', resetToGasSqueeze);
+    }
+
+    function init() {
+      buildHero();
+      buildSummaryCards();
+      renderLevelsChart();
+      renderGrowthChart();
+      renderBetaChart();
+      populateDriverSelect();
+      renderScenarioTable();
+      renderCoefficientTable();
+      renderSources();
+      renderNotes();
+      populateHorizonSelect();
+      wireScenarioButtons();
+      resetToGasSqueeze();
+    }
+
+    init();
+  </script>
+</body>
+</html>

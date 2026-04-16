@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NL Chemicals Oil/Gas Correlation Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #131a2f;
+      --panel-2: #1a2342;
+      --text: #edf2ff;
+      --muted: #aab7d4;
+      --accent: #7dd3fc;
+      --accent-2: #a78bfa;
+      --good: #86efac;
+      --warn: #fcd34d;
+      --bad: #fda4af;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 12px 36px rgba(0,0,0,0.22);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #0b1020 0%, #09101b 100%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    a { color: var(--accent); }
+    .page {
+      width: min(1400px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 24px 0 48px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .panel {
+      background: rgba(19, 26, 47, 0.9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .title {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0 0 8px;
+    }
+    .subtitle {
+      color: var(--muted);
+      margin: 0;
+      font-size: 0.98rem;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(125, 211, 252, 0.12);
+      color: var(--text);
+      border: 1px solid rgba(125, 211, 252, 0.24);
+      font-size: 0.92rem;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .metric {
+      padding: 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    .metric .label {
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-bottom: 6px;
+    }
+    .metric .value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+    .muted { color: var(--muted); }
+    .chart-box {
+      height: 420px;
+    }
+    .chart-box.short {
+      height: 360px;
+    }
+    .two-up {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .control {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+    }
+    .control label {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .control input,
+    .control select {
+      width: 100%;
+      background: #0f1630;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 700;
+      color: #06111b;
+      background: var(--accent);
+    }
+    button.secondary {
+      color: var(--text);
+      background: rgba(167, 139, 250, 0.16);
+      border: 1px solid rgba(167, 139, 250, 0.28);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      background: var(--panel);
+    }
+    .table-wrap {
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .callout {
+      padding: 12px 14px;
+      border-left: 4px solid var(--accent-2);
+      background: rgba(167, 139, 250, 0.08);
+      border-radius: 12px;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+    .scenario-result {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .scenario-card {
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+    }
+    .scenario-card .big {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .footnotes {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    @media (max-width: 1100px) {
+      .hero, .grid-4, .grid-3, .two-up, .scenario-result { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 760px) {
+      .hero, .grid-4, .grid-3, .two-up, .controls, .scenario-result { grid-template-columns: 1fr; }
+      .page { width: min(100vw - 20px, 1400px); }
+      .title { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="hero">
+      <div class="panel">
+        <p class="title">Netherlands chemicals dashboard</p>
+        <p class="subtitle">
+          Distributed-lag view of Dutch chemicals output versus Brent, TTF gas, chemicals PPI, and capacity utilization.
+          This site is built from the latest pull run and is safe to host on GitHub Pages.
+        </p>
+        <div class="pill-row" id="heroPills"></div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Latest snapshot</h2>
+        </div>
+        <div id="latestSnapshot"></div>
+      </div>
+    </div>
+
+    <div class="grid-4" id="summaryCards"></div>
+
+    <div class="panel" style="margin-bottom: 20px;">
+      <div class="section-head">
+        <h2>Normalized levels</h2>
+        <span class="muted">All major series rebased to 100 at the first available common point</span>
+      </div>
+      <div id="levelsChart" class="chart-box"></div>
+    </div>
+
+    <div class="two-up">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Output growth</h2>
+          <span class="muted">Year-over-year change in Dutch chemicals output</span>
+        </div>
+        <div id="growthChart" class="chart-box short"></div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Cumulative model betas</h2>
+          <span class="muted">Sum of lag coefficients across the model window</span>
+        </div>
+        <div id="betaChart" class="chart-box short"></div>
+      </div>
+    </div>
+
+    <div class="two-up">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Lagged correlations</h2>
+          <div>
+            <label class="muted" for="driverSelect">Driver</label>
+            <select id="driverSelect"></select>
+          </div>
+        </div>
+        <div id="lagCorrChart" class="chart-box short"></div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Custom scenario tool</h2>
+          <span class="muted">One-month output impact if shocks persist for the selected horizon</span>
+        </div>
+        <div class="controls">
+          <div class="control">
+            <label for="brentPct">Brent shock (%)</label>
+            <input id="brentPct" type="number" step="0.1" value="20" />
+          </div>
+          <div class="control">
+            <label for="gasPct">TTF gas shock (%)</label>
+            <input id="gasPct" type="number" step="0.1" value="35" />
+          </div>
+          <div class="control">
+            <label for="ppiPct">Chemicals PPI shock (%)</label>
+            <input id="ppiPct" type="number" step="0.1" value="8" />
+          </div>
+          <div class="control">
+            <label for="capacityPts">Capacity change (pts)</label>
+            <input id="capacityPts" type="number" step="0.1" value="-1" />
+          </div>
+          <div class="control">
+            <label for="horizonMonths">Shock horizon (months)</label>
+            <select id="horizonMonths"></select>
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="runScenarioBtn">Run custom scenario</button>
+          <button id="resetScenarioBtn" class="secondary">Reset to gas squeeze</button>
+        </div>
+        <div id="scenarioDescription" class="callout">
+          The simulator applies your shocks through the estimated lag coefficients and shows the modeled incremental output move.
+        </div>
+        <div class="scenario-result">
+          <div class="scenario-card">
+            <div class="muted">Deterministic impact</div>
+            <div class="big" id="scenarioDeterministic">—</div>
+          </div>
+          <div class="scenario-card">
+            <div class="muted">P10</div>
+            <div class="big" id="scenarioP10">—</div>
+          </div>
+          <div class="scenario-card">
+            <div class="muted">P90</div>
+            <div class="big" id="scenarioP90">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-up">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Predefined scenarios</h2>
+          <span class="muted">Residual-bootstrap range around the point estimate</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Scenario</th>
+                <th>Inputs</th>
+                <th>Point</th>
+                <th>P10 / P90</th>
+              </tr>
+            </thead>
+            <tbody id="scenarioTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Model terms</h2>
+          <span class="muted">HAC-robust OLS coefficient table</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Term</th>
+                <th>Coef</th>
+                <th>p-value</th>
+                <th>95% CI</th>
+              </tr>
+            </thead>
+            <tbody id="coefTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-up">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Data sources</h2>
+          <span class="muted">Resolved endpoints from the latest pull</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Series</th>
+                <th>Source</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="sourceTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Interpretation notes</h2>
+        </div>
+        <div id="notesBox"></div>
+        <div class="footnotes">
+          Files emitted by the build step include <code>analysis_payload.json</code>, <code>lag_correlations.csv</code>,
+          <code>regression_coefficients.csv</code>, and <code>model_summary.txt</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const payload = __ANALYSIS_PAYLOAD__;
+    const driverMeta = {
+      brent: { label: 'Brent' },
+      gas: { label: 'TTF gas' },
+      ppi: { label: 'Chemicals PPI' }
+    };
+
+    function fmtNum(value, digits = 2) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      return Number(value).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+    }
+
+    function fmtPct(value, digits = 1) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      return `${(Number(value) * 100).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits })}%`;
+    }
+
+    function fmtPctPoint(value, digits = 1) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      return `${Number(value).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits })} pts`;
+    }
+
+    function fmtMaybeSigned(value, digits = 1) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+      const num = Number(value);
+      const sign = num > 0 ? '+' : '';
+      return `${sign}${num.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits })}%`;
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function baseLayout() {
+      return {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#edf2ff', family: 'ui-sans-serif, system-ui, sans-serif' },
+        margin: { l: 48, r: 20, t: 20, b: 40 },
+        xaxis: { gridcolor: 'rgba(255,255,255,0.08)', zerolinecolor: 'rgba(255,255,255,0.08)' },
+        yaxis: { gridcolor: 'rgba(255,255,255,0.08)', zerolinecolor: 'rgba(255,255,255,0.08)' },
+        legend: { orientation: 'h', y: 1.15 }
+      };
+    }
+
+    function buildHero() {
+      const pills = [
+        `Sample: ${payload.meta.start_date} → ${payload.meta.end_date}`,
+        `Latest observation: ${payload.meta.latest_observation_date}`,
+        `Max lag: ${payload.meta.max_lag_months} months`,
+        `Bootstrap draws: ${payload.meta.bootstrap_draws}`
+      ];
+      document.getElementById('heroPills').innerHTML = pills.map(v => `<span class="pill">${escapeHtml(v)}</span>`).join('');
+
+      const latest = payload.latest_values;
+      document.getElementById('latestSnapshot').innerHTML = `
+        <div class="metric" style="padding:12px; box-shadow:none; background:rgba(255,255,255,0.03); margin-bottom:10px;">
+          <div class="label">Chemicals output index</div>
+          <div class="value">${fmtNum(latest.chem_output_idx, 1)}</div>
+        </div>
+        <div class="metric" style="padding:12px; box-shadow:none; background:rgba(255,255,255,0.03); margin-bottom:10px;">
+          <div class="label">TTF gas</div>
+          <div class="value">${fmtNum(latest.ttf_gas_usd_per_mmbtu, 2)}</div>
+        </div>
+        <div class="metric" style="padding:12px; box-shadow:none; background:rgba(255,255,255,0.03);">
+          <div class="label">Brent</div>
+          <div class="value">${fmtNum(latest.brent_usd_per_bbl, 2)}</div>
+        </div>
+      `;
+    }
+
+    function buildSummaryCards() {
+      const h = payload.headline;
+      const cards = [
+        { label: 'R²', value: fmtNum(h.r_squared, 3) },
+        { label: 'Adj. R²', value: fmtNum(h.adj_r_squared, 3) },
+        { label: 'Observations', value: fmtNum(h.nobs, 0) },
+        { label: 'Strongest modeled driver', value: h.strongest_driver || '—' }
+      ];
+      document.getElementById('summaryCards').innerHTML = cards.map(card => `
+        <div class="metric">
+          <div class="label">${escapeHtml(card.label)}</div>
+          <div class="value">${escapeHtml(card.value)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderLevelsChart() {
+      const rows = payload.series.levels;
+      const dates = rows.map(r => r.date);
+      const seriesKeys = [
+        ['chem_output_idx', 'Chemicals output'],
+        ['chem_ppi_idx', 'Chemicals PPI'],
+        ['brent_usd_per_bbl', 'Brent'],
+        ['ttf_gas_usd_per_mmbtu', 'TTF gas']
+      ];
+      const traces = seriesKeys.map(([key, label]) => {
+        const firstRow = rows.find(r => r[key] !== null && r[key] !== undefined);
+        const base = firstRow ? Number(firstRow[key]) : null;
+        const y = rows.map(r => {
+          const val = r[key];
+          if (base === null || val === null || val === undefined) return null;
+          return (Number(val) / base) * 100;
+        });
+        return { x: dates, y, type: 'scatter', mode: 'lines', name: label, line: { width: 2.3 } };
+      });
+      Plotly.newPlot('levelsChart', traces, {
+        ...baseLayout(),
+        yaxis: { title: 'Index (base = 100)', gridcolor: 'rgba(255,255,255,0.08)' },
+        xaxis: { title: '' }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderGrowthChart() {
+      const rows = payload.series.growth;
+      Plotly.newPlot('growthChart', [{
+        x: rows.map(r => r.date),
+        y: rows.map(r => r.output_yoy_pct),
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Output YoY %',
+        line: { width: 2.4 }
+      }], {
+        ...baseLayout(),
+        yaxis: { title: 'YoY %', gridcolor: 'rgba(255,255,255,0.08)' },
+        xaxis: { title: '' }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderBetaChart() {
+      const rows = payload.cumulative_betas.filter(r => r.driver !== 'capacity');
+      Plotly.newPlot('betaChart', [{
+        x: rows.map(r => r.driver_label),
+        y: rows.map(r => r.cumulative_beta_0_6),
+        type: 'bar',
+        text: rows.map(r => fmtNum(r.cumulative_beta_0_6, 3)),
+        textposition: 'outside'
+      }], {
+        ...baseLayout(),
+        yaxis: { title: 'Cumulative beta (0-6m)', gridcolor: 'rgba(255,255,255,0.08)' },
+        xaxis: { title: '' }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    function populateDriverSelect() {
+      const select = document.getElementById('driverSelect');
+      select.innerHTML = Object.entries(driverMeta).map(([key, value]) =>
+        `<option value="${escapeHtml(key)}">${escapeHtml(value.label)}</option>`
+      ).join('');
+      select.value = 'gas';
+      select.addEventListener('change', () => renderLagCorrelationChart(select.value));
+      renderLagCorrelationChart(select.value);
+    }
+
+    function renderLagCorrelationChart(driver) {
+      const rows = payload.lag_correlations.filter(r => r.driver === driver);
+      Plotly.newPlot('lagCorrChart', [{
+        x: rows.map(r => r.lag_months),
+        y: rows.map(r => r.correlation),
+        type: 'bar',
+        text: rows.map(r => fmtNum(r.correlation, 3)),
+        textposition: 'outside'
+      }], {
+        ...baseLayout(),
+        xaxis: { title: 'Lag (months)', dtick: 1, gridcolor: 'rgba(255,255,255,0.08)' },
+        yaxis: { title: 'Correlation', gridcolor: 'rgba(255,255,255,0.08)' }
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    function renderScenarioTable() {
+      const body = document.getElementById('scenarioTableBody');
+      body.innerHTML = payload.scenarios.map(s => {
+        const inputs = s.inputs;
+        const inputText = `H=${inputs.horizon_months}m · Brent ${inputs.brent_pct}% · Gas ${inputs.gas_pct}% · PPI ${inputs.ppi_pct}% · Cap ${inputs.capacity_pts} pts`;
+        return `
+          <tr>
+            <td><strong>${escapeHtml(s.name)}</strong><div class="muted">${escapeHtml(s.description || '')}</div></td>
+            <td>${escapeHtml(inputText)}</td>
+            <td>${fmtPct(s.deterministic_pct_impact)}</td>
+            <td>${fmtPct(s.bootstrap_pct_impact.p10)} / ${fmtPct(s.bootstrap_pct_impact.p90)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderCoefficientTable() {
+      const rows = payload.coefficients.filter(r => r.term !== 'const');
+      const sorted = rows.sort((a, b) => Math.abs(Number(b.coef || 0)) - Math.abs(Number(a.coef || 0)));
+      document.getElementById('coefTableBody').innerHTML = sorted.map(r => `
+        <tr>
+          <td>${escapeHtml(r.term)}</td>
+          <td>${fmtNum(r.coef, 4)}</td>
+          <td>${fmtNum(r.p_value, 4)}</td>
+          <td>${fmtNum(r.ci_low, 4)} to ${fmtNum(r.ci_high, 4)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderSources() {
+      const rows = payload.sources || [];
+      document.getElementById('sourceTableBody').innerHTML = rows.map(r => {
+        const details = [r.dataset ? `dataset=${r.dataset}` : null, r.url || r.resolved_xlsx_url || null, r.note || null]
+          .filter(Boolean)
+          .map(v => escapeHtml(v))
+          .join('<br>');
+        return `
+          <tr>
+            <td>${escapeHtml(r.series)}</td>
+            <td>${escapeHtml(r.source || '—')}</td>
+            <td>${details || '—'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderNotes() {
+      document.getElementById('notesBox').innerHTML = payload.meta.notes
+        .map(note => `<div class="callout">${escapeHtml(note)}</div>`)
+        .join('');
+    }
+
+    function populateHorizonSelect() {
+      const select = document.getElementById('horizonMonths');
+      const maxLag = Number(payload.meta.max_lag_months || 6);
+      select.innerHTML = Array.from({ length: maxLag + 1 }, (_, i) => i)
+        .filter(v => v > 0)
+        .map(v => `<option value="${v}">${v}</option>`)
+        .join('');
+      select.value = '3';
+    }
+
+    function customImpactFromInputs(inputs) {
+      let impactLog = 0;
+      const horizon = Number(inputs.horizon_months || 3);
+      Object.keys(driverMeta).forEach(driver => {
+        const shockPct = Number(inputs[`${driver}_pct`] || 0);
+        const shockLog = Math.log(1 + (shockPct / 100));
+        (payload.driver_betas_by_lag[driver] || []).forEach(row => {
+          if (Number(row.lag_months) < horizon) {
+            impactLog += Number(row.coef || 0) * shockLog;
+          }
+        });
+      });
+      if (payload.capacity_beta !== null && payload.capacity_beta !== undefined) {
+        impactLog += Number(payload.capacity_beta) * Number(inputs.capacity_pts || 0);
+      }
+      const rq = payload.residual_quantiles || {};
+      return {
+        deterministic: Math.exp(impactLog) - 1,
+        p10: Math.exp(impactLog + Number(rq.p10 || 0)) - 1,
+        p90: Math.exp(impactLog + Number(rq.p90 || 0)) - 1
+      };
+    }
+
+    function readScenarioInputs() {
+      return {
+        brent_pct: Number(document.getElementById('brentPct').value || 0),
+        gas_pct: Number(document.getElementById('gasPct').value || 0),
+        ppi_pct: Number(document.getElementById('ppiPct').value || 0),
+        capacity_pts: Number(document.getElementById('capacityPts').value || 0),
+        horizon_months: Number(document.getElementById('horizonMonths').value || 3)
+      };
+    }
+
+    function renderCustomScenario() {
+      const inputs = readScenarioInputs();
+      const result = customImpactFromInputs(inputs);
+      document.getElementById('scenarioDeterministic').textContent = fmtPct(result.deterministic);
+      document.getElementById('scenarioP10').textContent = fmtPct(result.p10);
+      document.getElementById('scenarioP90').textContent = fmtPct(result.p90);
+      document.getElementById('scenarioDescription').innerHTML = `
+        Custom scenario using a ${escapeHtml(String(inputs.horizon_months))}-month shock horizon.
+        Brent ${escapeHtml(String(inputs.brent_pct))}%, gas ${escapeHtml(String(inputs.gas_pct))}%,
+        chemicals PPI ${escapeHtml(String(inputs.ppi_pct))}%, capacity ${escapeHtml(String(inputs.capacity_pts))} pts.
+      `;
+    }
+
+    function resetToGasSqueeze() {
+      const gasSqueeze = payload.scenarios.find(s => s.name === 'Gas squeeze');
+      const inputs = (gasSqueeze && gasSqueeze.inputs) || { brent_pct: 5, gas_pct: 35, ppi_pct: 8, capacity_pts: -1, horizon_months: 3 };
+      document.getElementById('brentPct').value = inputs.brent_pct;
+      document.getElementById('gasPct').value = inputs.gas_pct;
+      document.getElementById('ppiPct').value = inputs.ppi_pct;
+      document.getElementById('capacityPts').value = inputs.capacity_pts;
+      document.getElementById('horizonMonths').value = inputs.horizon_months;
+      renderCustomScenario();
+    }
+
+    function wireScenarioButtons() {
+      document.getElementById('runScenarioBtn').addEventListener('click', renderCustomScenario);
+      document.getElementById('resetScenarioBtn').addEventListener('click', resetToGasSqueeze);
+    }
+
+    function init() {
+      buildHero();
+      buildSummaryCards();
+      renderLevelsChart();
+      renderGrowthChart();
+      renderBetaChart();
+      populateDriverSelect();
+      renderScenarioTable();
+      renderCoefficientTable();
+      renderSources();
+      renderNotes();
+      populateHorizonSelect();
+      wireScenarioButtons();
+      resetToGasSqueeze();
+    }
+
+    init();
+  </script>
+</body>
+</html>

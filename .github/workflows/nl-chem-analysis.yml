@@ -1,0 +1,75 @@
+name: NL chemicals analysis
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 6 1 * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Pull Netherlands chemicals data
+        run: |
+          python scripts/pull_nl_chem_data.py --outdir data --start 2015-01-01
+
+      - name: Build dashboard site
+        run: |
+          python scripts/build_nl_chem_analysis.py \
+            --input data/nl_chem_inputs_monthly.csv \
+            --metadata data/pull_metadata.json \
+            --template web/dashboard_template.html \
+            --site-dir site \
+            --max-lag 6 \
+            --bootstrap-draws 3000
+
+      - name: Upload analysis artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nl-chem-analysis-output
+          path: |
+            site/
+            data/
+          if-no-files-found: error
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
