@@ -33,7 +33,7 @@ import pandas as pd
 import requests
 
 EUROSTAT_BASE = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
-EIA_BRENT_XLS = "https://www.eia.gov/dnav/pet/hist_xls/RBRTEd.xls"
+EIA_BRENT_XLS = "https://www.eia.gov/dnav/pet/hist_xls/RBRTEm.xls"
 EIA_BRENT_HTML = "https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?f=m&n=pet&s=rbrte"
 WORLD_BANK_COMMODITY_PAGE = "https://www.worldbank.org/en/research/commodity-markets"
 USER_AGENT = "Mozilla/5.0 (compatible; NL-Chem-Pull/2.0)"
